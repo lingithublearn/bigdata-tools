@@ -9,3 +9,16 @@
 	- 环境的版本可以使用 spark-shell查看
 - 启动参数
 - 调优
+	- yarn ui跳转 Tracking UI
+	- 查看各个stage的用时
+- 架构
+	- 推荐使用SQL，利用底层已经实现好的spark sql函数，简化编程，类似数据中台的开发
+	- readFromxx
+		- hdfs
+		- db
+		- kafka
+	- process
+	- output
+		- db
+		- hdfs
+		- kafka 消息队列
