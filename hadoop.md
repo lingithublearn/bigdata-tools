@@ -4,6 +4,10 @@
 	- 定时启动 crontab -e 网页版本crontab验证即可
 	- 时间命令 `date +"%Y%m%d-%H%M%S"` 脚本中需要%转义，命令需要`
 	- 定时删除 `00 02 * * * find /home/datadir -name "*" -mtime +7 -exec rm -rf {} \;`
+	- less
+		- 搜索 / 向上N,向下n
+		- 翻页 向下空格，向上b
+		- 置顶g，到尾巴G 
 	- shell 脚本
 		- `#!/bin/bash` 第一行
 		- 多行编辑 ` \`
