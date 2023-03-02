@@ -7,10 +7,13 @@
 - spark SQL
 	- 官网的[sql function](https://spark.apache.org/docs/2.4.5/api/sql/index.html)，注意since from *.*版本限制
 	- 环境的版本可以使用 spark-shell查看
+	- 临时表可以存储在内存中，也可以存储在磁盘中
 - 启动参数
 - 调优
 	- yarn ui跳转 Tracking UI
 	- 查看各个stage的用时
+	- IO用时，以及程序shuffle用时
+	- 在DAG里可以找到适当的中间计算结果，对结果进行缓存，从而释放内存
 - 架构
 	- 推荐使用SQL，利用底层已经实现好的spark sql函数，简化编程，类似数据中台的开发
 	- readFromxx
