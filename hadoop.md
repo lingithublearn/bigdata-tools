@@ -1,1 +1,26 @@
 
+- linux 
+	- sh xxx.sh > /dev/null 2>&1 &
+	- 定时启动 crontab -e 网页版本crontab验证即可
+	- 时间命令 `date +"%Y%m%d-%H%M%S"` 脚本中需要%转义，命令需要`
+	- 定时删除 `00 02 * * * find /home/datadir -name "*" -mtime +7 -exec rm -rf {} \;`
+	- shell 脚本
+		- `#!/bin/bash` 第一行
+		- 多行编辑 ` \`
+- hdfs
+	- hadoop fs -ls 
+	- hadoop fs -cat (对特殊的压缩包 如 gzip的 ：|zat)
+	- hadoop fs -du -h 
+	- hadoop fs -put/-get
+- yarn
+	- yarn命令行
+		- yarn top | grep xxx
+		- yarn application -list | grep queue
+		- yarn applicaiton -kill applicationId
+	- yarn ui 
+		- hadoop ui IP:8088
+			- RM Home
+			- Scheduler/ running
+		- 监控 ui ip:50070
+			- Utilities
+				- file system
