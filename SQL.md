@@ -1,4 +1,12 @@
 
 - hive
+	- 进入客户端 hive-client
+	- db连接控制：dbeaver
 - clickhouse
+	- 分布式表
+	- 命令
+		- 删除表数据，truncat table xx_local on CLUSTER cluster
+		- 删除分区数据，alter table xx_local on CLUSTER cluster delete where datetime = ''
+		- 删除表 drop table xxx on CLUSTER cluster
+		- 新建表 
 - hbase
