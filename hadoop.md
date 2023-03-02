@@ -13,6 +13,10 @@
 		- `#!/bin/bash` 第一行
 		- 多行编辑 ` \`
 		- 时间命令 `date +"%Y%m%d-%H%M%S"` 脚本中需要%转义，命令需要`
+	- 验证连接
+		- telnet ip port
+		- wget ip:port 用http连接测试，相当于一个get请求
+		- ping ip 测试网络是否通，有没有丢包
 - hdfs
 	- hadoop fs -ls 
 	- hadoop fs -cat (对特殊的压缩包 如 gzip的 ：|zat)
