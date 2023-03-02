@@ -1,1 +1,11 @@
-
+- spark on yarn 
+- spark 1.*
+- spark 2.*
+	- [spark 2.4.5 官网](https://spark.apache.org/docs/2.4.5/index.html)
+	- spark session
+	- spark dataset
+- spark SQL
+	- 官网的[sql function](https://spark.apache.org/docs/2.4.5/api/sql/index.html)，注意since from *.*版本限制
+	- 环境的版本可以使用 spark-shell查看
+- 启动参数
+- 调优
