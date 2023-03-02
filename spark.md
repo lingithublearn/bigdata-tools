@@ -7,6 +7,9 @@
 - spark SQL
 	- 官网的[sql function](https://spark.apache.org/docs/2.4.5/api/sql/index.html)，注意since from *.*版本限制
 	- 环境的版本可以使用 spark-shell查看
+	- 测试方法
+		- spark-sql
+		- spark-shell
 	- 临时表可以存储在内存中，也可以存储在磁盘中
 - 启动参数
 - 调优
