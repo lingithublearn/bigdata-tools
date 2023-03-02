@@ -1,5 +1,5 @@
 #  大数据工具记录
-# 1. hadoop
+# 1. [hadoop](https://github.com/lingithublearn/bigdata-tools/blob/main/hadoop.md)
 - linux 
 	- sh xxx.sh > /dev/null 2>&1 &
 	- 定时启动 crontab -e 网页版本crontab验证即可
