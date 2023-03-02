@@ -2,10 +2,18 @@
 - hive
 	- 进入客户端 hive-client
 	- db连接控制：dbeaver
+	- 表
+		- 内部表
+			- 数据在hive中有保存
+		- 外部表
+			- 数据存储在hdfs，hive只是保存文件目录，引用映射
 - clickhouse
 	- 分布式表（local，view）
 	- [function](https://clickhouse.com/docs/en/sql-reference/functions/)
 	- [官网](https://clickhouse.com/) 
+	- jdbc
+		- 官方 8013，8014 协议http
+		- 第三方 端口9000，9001 协议 TCP/IP
 	- 命令
 		- 删除表数据，truncat table xx_local on CLUSTER cluster
 		- 删除分区数据，alter table xx_local on CLUSTER cluster delete where datetime = ''
