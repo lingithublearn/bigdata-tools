@@ -3,7 +3,9 @@
 	- 进入客户端 hive-client
 	- db连接控制：dbeaver
 - clickhouse
-	- 分布式表
+	- 分布式表（local，view）
+	- [function](https://clickhouse.com/docs/en/sql-reference/functions/)
+	- [官网](https://clickhouse.com/) 
 	- 命令
 		- 删除表数据，truncat table xx_local on CLUSTER cluster
 		- 删除分区数据，alter table xx_local on CLUSTER cluster delete where datetime = ''
