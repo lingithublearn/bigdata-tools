@@ -24,8 +24,17 @@
     - 数据集市
 
  8、大数据学习相关资料
-#####  8.1、大数据学习网站
-* [Apache官网](http://www.apache.org/)
-* [DataFunTalk知乎](https://www.zhihu.com/org/datafuntalk/posts)
-* [美团大数据](https://tech.meituan.com/tags/%E5%A4%A7%E6%95%B0%E6%8D%AE.html)
-* [InfoQ大数据](https://www.infoq.cn/topic/bigdata)
+####  8.1、大数据学习网站
+ * [Apache官网](http://www.apache.org/)
+ * [DataFunTalk知乎](https://www.zhihu.com/org/datafuntalk/posts)
+ * [美团大数据](https://tech.meituan.com/tags/%E5%A4%A7%E6%95%B0%E6%8D%AE.html)
+ * [InfoQ大数据](https://www.infoq.cn/topic/bigdata)
+
+#### 8.4、学习网址收藏
+* [Apache 官网地址](https://www.apache.org/)
+* [Hadoop 官网地址](http://hadoop.apache.org/)
+* [Spark 官网地址](http://spark.apache.org/)
+* [Flink 官网地址](http://flink.apache.org/)
+* [Doris GitHub地址](https://github.com/apache/incubator-doris/wiki)
+* [Doris 官网地址](http://doris.apache.org/master/zh-CN/)
+
