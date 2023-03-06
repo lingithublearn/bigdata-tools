@@ -23,3 +23,9 @@
     - 数据分析
     - 数据集市
 
+ 8、大数据学习相关资料
+#####  8.1、大数据学习网站
+* [Apache官网](http://www.apache.org/)
+* [DataFunTalk知乎](https://www.zhihu.com/org/datafuntalk/posts)
+* [美团大数据](https://tech.meituan.com/tags/%E5%A4%A7%E6%95%B0%E6%8D%AE.html)
+* [InfoQ大数据](https://www.infoq.cn/topic/bigdata)
