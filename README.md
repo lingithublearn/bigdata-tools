@@ -1,6 +1,9 @@
 #  大数据工具记录
 1. [hadoop](https://github.com/lingithublearn/bigdata-tools/blob/main/hadoop.md) include linux
+  - [hive](https://github.com/lingithublearn/bigdata-tools/blob/main/hadoop/hive.md)
 2. [spark](https://github.com/lingithublearn/bigdata-tools/blob/main/spark.md)
+ - [spark-core](https://github.com/lingithublearn/bigdata-tools/blob/main/spark/spark-core.md)
+ - [spark-SQL](https://github.com/lingithublearn/bigdata-tools/blob/main/spark/spark-SQL.md)
 3. Flink
 4. [SQL](https://github.com/lingithublearn/bigdata-tools/blob/main/SQL.md)
 5. [数据相关知识点](https://github.com/lingithublearn/bigdata-tools/blob/main/%E6%95%B0%E6%8D%AE%E5%88%86%E6%9E%90/data.md)
