@@ -13,6 +13,8 @@
 		- `#!/bin/bash` 第一行
 		- 多行编辑 ` \`
 		- 时间命令 `date +"%Y%m%d-%H%M%S"` 脚本中需要%转义，命令需要`
+		- crontab -e 中配置date的时候，需要对%,需要使用\进行转义
+	
 	- 验证连接
 		- telnet ip port
 		- wget ip:port 用http连接测试，相当于一个get请求
