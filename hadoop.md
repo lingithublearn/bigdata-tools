@@ -20,6 +20,9 @@
 		- wget ip:port 用http连接测试，相当于一个get请求
 		- ping ip 测试网络是否通，有没有丢包
 	- 服务
+		- 在目录  /etc/systemd/system 中用root创建 xx.service
+		- 赋予权限
+		- system status xx.service
 	```[Unit]
 	Description= hdfsToCK_lte service
 	After=network.target
