@@ -19,6 +19,20 @@
 		- telnet ip port
 		- wget ip:port 用http连接测试，相当于一个get请求
 		- ping ip 测试网络是否通，有没有丢包
+	- 服务
+	```[Unit]
+	Description= hdfsToCK_lte service
+	After=network.target
+
+	[Service]
+	User=hdfs
+	WorkingDirectory=/usr/local/wangyou/0804Spark/lte
+	ExecStart=/usr/local/wangyou/0804Spark/lte/hdfsToCK_lte.sh
+	Restart=always
+
+	[Install]
+	WantedBy=multi-user.target
+	```
 - hdfs
 	- hadoop fs -ls 
 	- hadoop fs -cat (对特殊的压缩包 如 gzip的 ：|zat)
