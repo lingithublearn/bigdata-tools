@@ -41,6 +41,10 @@
 	- hadoop fs -cat (对特殊的压缩包 如 gzip的 ：|zat)
 	- hadoop fs -du -h 
 	- hadoop fs -put/-get
+	- NameNode管理文件系统的命名空间。它维护着文件系统树及整棵树内所有的文件和目录
+	- NameNode用来存储一些元数据信息的，而DataNode却是用来存放真实数据的
+	- hadoop多节点部署最少可以是2个节点，即一个NameNode和一个DataNode。
+	- ZooKeeper是一个独立的组件，它可以和HDFS配合使用，但没有非得部署在一起的要求，只要网络通就可以。另外，ZooKeeper建议最少安装在3个节点上，且数目为奇数。
 - yarn
 	- yarn命令行
 		- yarn top | grep xxx
