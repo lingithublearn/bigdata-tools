@@ -23,6 +23,9 @@
 		- 在目录  /etc/systemd/system 中用root创建 xx.service
 		- 赋予权限
 		- system status xx.service
+		- systemctl start xx.service
+		- systemctl daemon-reload
+		- journalctl -u hdfsToCK_lte.service 检查日志
 	```[Unit]
 	Description= hdfsToCK_lte service
 	After=network.target
