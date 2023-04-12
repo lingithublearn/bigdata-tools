@@ -20,3 +20,8 @@
 		- 删除表 drop table xxx on CLUSTER cluster
 		- 新建表 
 - hbase
+- sqlserver
+	- 数据导入导出
+		- 数据库，右键task，导入数据
+		- 数据源excel，选择xlxs格式
+		- 目标，sqlserver 用户名，密码，目标表 
