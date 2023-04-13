@@ -23,6 +23,8 @@
 		- clickhouse-client
 		```
 		clickhouse-client --param_tuple_in_tuple="(10, ('dt', 10))" -q "SELECT * FROM table WHERE val = {tuple_in_tuple:Tuple(UInt8, Tuple(String, UInt8))}"
+		```
+		```
 		--host, -h -– 服务端的host名称, 默认是localhost。您可以选择使用host名称或者IPv4或IPv6地址。
 		--port – 连接的端口，默认值：9000。注意HTTP接口以及TCP原生接口使用的是不同端口。
 		--user, -u – 用户名。 默认值：default。
@@ -41,7 +43,12 @@
 		--param_<name> — 查询参数配置查询参数
 		```
 		- 输入输出数据
-			- 
+		```
+		format CSV 为逗号分割，format TSV为制表符分割
+		clickhouse-client --port 9800 --query="insert into dw_perf_lte.tb_dw_perf_lte_cell_kpi_h_inc(column) format CSV" < ./tb_dw_perf_lte_cell_kpi_h_inc.csv
+
+		clickhouse-client --port 9000 --query="select * from dw_perf_lte.tb_dw_perf_lte_cell_kpi_h_inc where format CSV" > ./tb_dw_perf_lte_cell_kpi_h_inc.csv
+		```
 - hbase
 - sqlserver
 	- 数据导入导出
