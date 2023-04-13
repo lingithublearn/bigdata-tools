@@ -14,6 +14,9 @@
 		- 多行编辑 ` \`
 		- 时间命令 `date +"%Y%m%d-%H%M%S"` 脚本中需要%转义，命令需要`
 		- crontab -e 中配置date的时候，需要对%,需要使用\进行转义
+	- vim
+		- (替换)[http://xstarcd.github.io/wiki/vim/vim_replace_encodeing.html]
+		- :%s/vivian/sky/(等同于 :g/vivian/s//sky/) 替换每一行的第一个 vivian 为 sky
 	
 	- 验证连接
 		- telnet ip port
