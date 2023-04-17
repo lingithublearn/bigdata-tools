@@ -49,6 +49,10 @@
 
 		clickhouse-client --port 9000 --query="select * from dw_perf_lte.tb_dw_perf_lte_cell_kpi_h_inc where format CSV" > ./tb_dw_perf_lte_cell_kpi_h_inc.csv
 		```
+	- zookeeper
+		- zkCli.sh
+		- deleteall -path
+		- 可以删除错误的副本，replica 
 - hbase
 - sqlserver
 	- 数据导入导出
