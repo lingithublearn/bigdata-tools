@@ -17,6 +17,8 @@
 	- vim
 		- (替换)[http://xstarcd.github.io/wiki/vim/vim_replace_encodeing.html]
 		- :%s/vivian/sky/(等同于 :g/vivian/s//sky/) 替换每一行的第一个 vivian 为 sky
+	- find
+		- find / -name tnsnames.ora
 	
 	- 验证连接
 		- telnet ip port
