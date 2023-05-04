@@ -6,7 +6,7 @@
  - [spark-SQL](https://github.com/lingithublearn/bigdata-tools/blob/main/spark/spark-SQL.md)
 3. Flink
 4. [SQL](https://github.com/lingithublearn/bigdata-tools/blob/main/SQL.md)
-5. 数据分析 (https://github.com/lingithublearn/bigdata-tools/blob/main/%E6%95%B0%E6%8D%AE%E5%88%86%E6%9E%90/%E6%95%B0%E7%90%86%E7%BB%9F%E8%AE%A1.md)
+5. [数据分析] (https://github.com/lingithublearn/bigdata-tools/blob/main/%E6%95%B0%E6%8D%AE%E5%88%86%E6%9E%90/%E6%95%B0%E7%90%86%E7%BB%9F%E8%AE%A1.md)
 6. [数据相关知识点](https://github.com/lingithublearn/bigdata-tools/blob/main/%E6%95%B0%E6%8D%AE%E5%88%86%E6%9E%90/data.md)
  - 数据仓库
  - 数据中台
