@@ -24,7 +24,7 @@ SETTINGS index_granularity = 8192
   
     - 数据的去重只会在数据合并期间进行。合并会在后台一个不确定的时间进行，因此你无法预先作出计划。有一些数据可能仍未被处理。尽管你可以调用 OPTIMIZE 语句发起计划外的合并，但请不要依靠它，因为 OPTIMIZE语句会引发对数据的大量读写。
     - 理解：去重不定时，不完全，不可靠
-  - final 关键词
+  - final 关键词 `select * from tbName fianl where datatime = ''`
     - 配合Replacing 表结构使用，会针对主键（组合索引）进行去重
     - 理解：分区键没同时写order by里，不算主键，没构建主键索引，会被去重，会去多了
   - group by+ argMax(a,b)
