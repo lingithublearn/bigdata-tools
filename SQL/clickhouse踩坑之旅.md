@@ -1,4 +1,4 @@
-1. Clickhouse 实时更新-数据去重（原子性）
+#1. Clickhouse 实时更新-数据去重（原子性）
   - RepacingMergerTree 表结构
   ```
   CREATE TABLE lzm_test.insert_test
@@ -15,8 +15,7 @@
 ENGINE = ReplicatedReplacingMergeTree('/data/clickhouse/data/{shard}/lzm_test/insert_test',
  '{replica}')
 PARTITION BY datatime
-ORDER BY (datatime,
- a)
+ORDER BY (datatime,a)
 TTL datatime + toIntervalMonth(6)
 SETTINGS index_granularity = 8192
 
