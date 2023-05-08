@@ -1,6 +1,7 @@
 # 1. Clickhouse 实时更新-数据去重（原子性）
   坑点：
   - RepacingMergerTree 表结构
+  
   ```
   CREATE TABLE lzm_test.insert_test
 (
