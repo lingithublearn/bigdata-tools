@@ -1,4 +1,4 @@
-#1. Clickhouse 实时更新-数据去重（原子性）
+# 1. Clickhouse 实时更新-数据去重（原子性）
   - RepacingMergerTree 表结构
   ```
   CREATE TABLE lzm_test.insert_test
