@@ -33,3 +33,17 @@ SETTINGS index_granularity = 8192
   - alter table delete where
     - 异步删除的，相当于后台给你新增一个标志位，类似”-1“,等程序删除，查询不可见
     - 理解：新入的数据，如果有相同的，会被视为冗余数据，被删除。结果是不同的入了，相同的被删了
+
+# 2. 重建表，不删除数据的情况下
+- 背景
+  - 分区键，需要设置进入索引，索引修改只满足新增列
+  - 只能删表重建，但补充数据耗时太长，所以想用rename，insert等方法
+
+- 测试方法
+  - 新建表，create xxx
+  - 转移数据：insert table newtb select * from oldtb where xxx
+    - 看数据量，可能时间比较长
+  - 删掉原表，drop table tbname on cluster cluster
+  - 改表名： rename tabel tbName to tbName on cluster cluster
+    - 结果是新的表的zookeeper里面的表元数据存储位置是没有改变的
+  - 
