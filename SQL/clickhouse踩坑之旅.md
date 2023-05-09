@@ -49,3 +49,20 @@ SETTINGS index_granularity = 8192
     - 结果是新的表的zookeeper里面的表元数据存储位置是没有改变的
     - 影响的应该是，新建表的时候，不能再使用这个路径了
   - 视图表不用修改，只是查询的作用
+
+# 3. 分布式ddl，节点返回失败
+- 报错
+``` Watching task /clickhouse/task_queue/ddl/query-0000010620 is executing longer than distributed_ddl_task_timeout (=180) seconds. There are 2 unfinished hosts (0 of them are currently active), they are going to execute the query in background (version 21.3.4.25 (official build))
+```
+- 测试
+  - show processlist FORMAT Vertical
+- 可能原因
+  - 不能识别自身 `SELECT * FROM system.clusters;`
+  - 历史任务有错，卡住
+  ```
+  SELECT * FROM system.zookeeper WHERE path = '/clickhouse/task_queue/ddl/';
+  SELECT * FROM system.zookeeper WHERE path = '/clickhouse/task_queue/ddl/query-0000001000/';
+  SELECT * FROM system.zookeeper WHERE path = '/clickhouse/task_queue/ddl/' AND name = 'query-0000001000';
+  https://kb.altinity.com/altinity-kb-setup-and-maintenance/altinity-kb-ddlworker/there-are-n-unfinished-hosts-0-of-them-are-currently-active/
+  
+  ```
