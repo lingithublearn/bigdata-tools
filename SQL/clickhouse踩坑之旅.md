@@ -43,7 +43,9 @@ SETTINGS index_granularity = 8192
   - 新建表，create xxx
   - 转移数据：insert table newtb select * from oldtb where xxx
     - 看数据量，可能时间比较长
+    - 可能不能使用on cluster cluster ，需要从视图表中查询全量的，数据的转移量比较大
   - 删掉原表，drop table tbname on cluster cluster
   - 改表名： rename tabel tbName to tbName on cluster cluster
     - 结果是新的表的zookeeper里面的表元数据存储位置是没有改变的
-  - 
+    - 影响的应该是，新建表的时候，不能再使用这个路径了
+  - 视图表不用修改，只是查询的作用
