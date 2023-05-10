@@ -13,7 +13,7 @@
  - 数据中台
  - 数据建模
  - 数据监控/调度
-  - [dolphineSchdule](https://github.com/lingithublearn/bigdata-tools/blob/main/%E6%95%B0%E6%8D%AE%E7%AE%A1%E7%90%86%E7%B3%BB%E7%BB%9F/DolphinScheduler.md)
+   - [dolphineSchdule](https://github.com/lingithublearn/bigdata-tools/blob/main/%E6%95%B0%E6%8D%AE%E7%AE%A1%E7%90%86%E7%B3%BB%E7%BB%9F/DolphinScheduler.md)
  - 数据治理
  - 数据质量
  - 数据血缘
