@@ -76,5 +76,5 @@ SETTINGS index_granularity = 8192
  - 数据块会去重。对于被多次写的相同数据块（大小相同且具有相同顺序的相同行的数据块），该块仅会写入一次。（注意：Replicated*MergeTree 才会去重，不需要 zookeeper 的不带 MergeTree 不会去重）
  - ReplicatedMergeTree('/clickhouse/tables/{shard}/{database}/table_name', '{replica}')
  - 删除
-  - 删除元数据目录中的相应 .sql 文件（/var/lib/clickhouse/metadata/）。
-  - 删除 ZooKeeper 中的相应路径（/path_to_table/replica_name）。
+    - 删除元数据目录中的相应 .sql 文件（/var/lib/clickhouse/metadata/）。
+    - 删除 ZooKeeper 中的相应路径（/path_to_table/replica_name）。
