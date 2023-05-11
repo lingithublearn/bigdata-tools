@@ -45,8 +45,11 @@ SETTINGS index_granularity = 8192
     - 看数据量，可能时间比较长
     - 可能不能使用on cluster cluster ，需要从视图表中查询全量的，数据的转移量比较大
   - 删掉原表，drop table tbname on cluster cluster
+    - 可能存在数据量超过限制
+    - 可能可以测试attach和detach
   - 改表名： rename tabel tbName to tbName on cluster cluster
     - 结果是新的表的zookeeper里面的表元数据存储位置是没有改变的
+    - 复制表需要在zookeeper上新建一个路径来保存，默认的引擎室atomic，需要480s以后才能重建表
     - 影响的应该是，新建表的时候，不能再使用这个路径了
   - 视图表不用修改，只是查询的作用
 
@@ -66,3 +69,12 @@ SETTINGS index_granularity = 8192
   https://kb.altinity.com/altinity-kb-setup-and-maintenance/altinity-kb-ddlworker/there-are-n-unfinished-hosts-0-of-them-are-currently-active/
   
   ```
+  
+ # 4. Replicated*MergeTree 数据副本
+ - 副本是表级别的
+ - 复制是多主异步。 INSERT 语句（以及 ALTER ）可以发给任意可用的服务器。数据会先插入到执行该语句的服务器上，然后被复制到其他服务器。由于它是异步的，在其他副本上最近插入的数据会有一些延迟。如果部分副本不可用，则数据在其可用时再写入。
+ - 数据块会去重。对于被多次写的相同数据块（大小相同且具有相同顺序的相同行的数据块），该块仅会写入一次。（注意：Replicated*MergeTree 才会去重，不需要 zookeeper 的不带 MergeTree 不会去重）
+ - ReplicatedMergeTree('/clickhouse/tables/{shard}/{database}/table_name', '{replica}')
+ - 删除
+  - 删除元数据目录中的相应 .sql 文件（/var/lib/clickhouse/metadata/）。
+  - 删除 ZooKeeper 中的相应路径（/path_to_table/replica_name）。
