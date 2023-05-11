@@ -46,7 +46,11 @@ SETTINGS index_granularity = 8192
     - 可能不能使用on cluster cluster ，需要从视图表中查询全量的，数据的转移量比较大
   - 删掉原表，drop table tbname on cluster cluster
     - 可能存在数据量超过限制
-    - 可能可以测试attach和detach
+      - 如果仍然需要在不重新启动ClickHouse服务器的情况下删除表，请创建 <clickhouse-path>/flags/force_drop_table 文件并运行DROP查询
+      - touch /clickhouse/flags/force_drop_table
+      - chown clickhouse:clickhouse /clickhouse/flags/force_drop_table
+      - chmod 666 /clickhouse/flags/force_drop_table
+      - 执行drop语句，执行完后，这个文件会被删除
   - 改表名： rename tabel tbName to tbName on cluster cluster
     - 结果是新的表的zookeeper里面的表元数据存储位置是没有改变的
     - 复制表需要在zookeeper上新建一个路径来保存，默认的引擎室atomic，需要480s以后才能重建表
