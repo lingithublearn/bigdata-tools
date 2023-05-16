@@ -28,3 +28,6 @@
 		- db
 		- hdfs
 		- kafka 消息队列
+- 启动方式spark on yarn 
+	- yarn on client 
+	- yarn on cluster
