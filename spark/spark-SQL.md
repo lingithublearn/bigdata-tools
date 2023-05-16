@@ -1,3 +1,22 @@
+#  常用函数操作
+- 行转列：多行转为一行:concat_ws 字符串拼接
+    -  `concat_ws(',',collect_set(c))` 数据去重
+    -  `concat_ws(',',collect_list(c))` 数据不去重
+- 列转行  
+    - `explode（expr）` 用于处理array 和map结构的数据，分成多行
+- lateral view 子句
+    - 其实explode是一个UDTF函数（一行输入多行输出），这个时候如果要select除了explode得到的字段以外的多个字段，需要创建虚拟表
+    - `select uid, game from user_game LATERAL VIEW explode(split(game_list,",")) tmpTable as game`
+    - 对于string,使用split进行切割，获得数组
+    - game 是给 explode(split(game_list,",")) 列起的别名
+- 排序
+    - order by ：保证最终数据的顺序，还可以按照分区来排序
+    - distribute by 对表进行重新分区
+    - sort by   对分区内进行排序，分区不止一个时，回返回部分排序结果 `SELECT  name, age, zip_code FROM person SORT BY name ASC, age DESC;`
+    - cluster by 对数据重分区，每个分区内数据排序 = 先distribute by 后 sort by,不保证数据的总顺序
+
+
+问题
 * [9.2、Spark SQL]()
     - [1）、Spark SQL和Hive区别？Spark SQL一定比Hive快么？](#1spark-sqlhivespark-sqlhive)
     - [2）、Spark SQL有使用过么？在哪些项目中使用过？](#2spark-sql)
