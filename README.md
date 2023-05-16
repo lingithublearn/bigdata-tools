@@ -7,6 +7,7 @@
 3. Flink
 4. [SQL](https://github.com/lingithublearn/bigdata-tools/blob/main/SQL.md)
   - [clickhouse踩坑之旅](https://github.com/lingithublearn/bigdata-tools/blob/main/SQL/clickhouse%E8%B8%A9%E5%9D%91%E4%B9%8B%E6%97%85.md)
+  - [高性能mysql](https://github.com/lingithublearn/bigdata-tools/blob/main/SQL/%E9%AB%98%E6%80%A7%E8%83%BDmysql)
 5. [数据分析](https://github.com/lingithublearn/bigdata-tools/blob/main/%E6%95%B0%E6%8D%AE%E5%88%86%E6%9E%90/%E6%95%B0%E7%90%86%E7%BB%9F%E8%AE%A1.md)
 6. [数据相关知识点](https://github.com/lingithublearn/bigdata-tools/blob/main/%E6%95%B0%E6%8D%AE%E5%88%86%E6%9E%90/data.md)
  - 数据仓库
