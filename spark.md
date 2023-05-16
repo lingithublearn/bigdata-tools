@@ -30,4 +30,7 @@
 		- kafka 消息队列
 - 启动方式spark on yarn 
 	- yarn on client 
+		- Driver运行在Client上，通过AM向RM获取资源。这种模式下，客户端需要足够的内存来运行Driver进程，也需要稳定的网络连接，但是可以方便地对Driver进程进行监控和调试
 	- yarn on cluster
+		- 	Spark Driver运行在YARN集群中的一个ApplicationMaster节点上，而Executor同样运行在集群节点上
+		- 	无需担心Driver进程的内存和网络问题，但是无法直接监控和调试Driver进程
