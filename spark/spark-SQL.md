@@ -1,3 +1,4 @@
+
 #  常用函数操作
 - 行转列：多行转为一行:concat_ws 字符串拼接
     -  `concat_ws(',',collect_set(c))` 数据去重
@@ -14,7 +15,17 @@
     - distribute by 对表进行重新分区
     - sort by   对分区内进行排序，分区不止一个时，回返回部分排序结果 `SELECT  name, age, zip_code FROM person SORT BY name ASC, age DESC;`
     - cluster by 对数据重分区，每个分区内数据排序 = 先distribute by 后 sort by,不保证数据的总顺序
-
+- 对连续性数目的校验，转化成对第一个不连续的排序值进行校验
+    - 按照日期排序，
+        - rank() 不连续的排序 over（partition by xx order by xx）
+        - dense_rank() 连续的排序
+        - row_number() 行号
+    - 条件筛选后，用min()或者max() 对排序值进行筛选即可
+    - 错行开窗
+        - lag lead
+- 直接定位星期二
+    - sqlserver datename(dw,getDate(n))
+    - 
 
 问题
 * [9.2、Spark SQL]()
