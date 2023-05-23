@@ -82,3 +82,6 @@ SETTINGS index_granularity = 8192
  - 删除
     - 删除元数据目录中的相应 .sql 文件（/var/lib/clickhouse/metadata/）。
     - 删除 ZooKeeper 中的相应路径（/path_to_table/replica_name）。
+  
+# 5. 窗口函数
+  - v21.9版本正式支持，早期的版本需要借助array函数
