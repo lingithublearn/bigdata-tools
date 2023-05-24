@@ -15,9 +15,11 @@
     - distribute by 对表进行重新分区
     - sort by   对分区内进行排序，分区不止一个时，回返回部分排序结果 `SELECT  name, age, zip_code FROM person SORT BY name ASC, age DESC;`
     - cluster by 对数据重分区，每个分区内数据排序 = 先distribute by 后 sort by,不保证数据的总顺序
-- 对连续性数目的校验，转化成对第一个不连续的排序值进行校验
+- 对连续性数目的校验
     - 日期，减去排序的序号，对结果分组
         - 对满足条件的及结果进行排序的，相当于删去不满足条件的记录，不连续的会分布在其他日期
+    - 使用窗口函数，对当前行到第一行情况进行累计，满足条件计数，不满足条件计数1，则可以获得第一个满足条件连续的区域
+        - ` sum(case when a>0 then 0 else 1 end) over (partition by id order by datatime desc rows between UNBOUNDED PRECEDING and current row)`
     - 按照日期排序，
         - rank() 不连续的排序 over（partition by xx order by xx）
         - dense_rank() 连续的排序
@@ -51,6 +53,13 @@ SELECT name, dept, DENSE_RANK() OVER (PARTITION BY dept ORDER BY salary ROWS BET
 SELECT name, salary, LAG(salary) OVER (PARTITION BY dept ORDER BY salary) AS lag,
     LEAD(salary, 1, 0) OVER (PARTITION BY dept ORDER BY salary) AS lead FROM employees;
 ```
+- count() 函数
+    - count(column_name)统计指定列的值的数目，null不计入
+    - count(\*) 统计表中的记录数目
+    - count(distinct column_name) 统计指定列不同值的数目
+    - count(if(a=0,true,null)) 统计条件下的记录数目
+    - count(distinct if()) 对满足条件的记录，去重后计数
+    - 替代的方法 sum(if)
 
 问题
 * [9.2、Spark SQL]()
