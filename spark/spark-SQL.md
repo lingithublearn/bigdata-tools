@@ -16,6 +16,8 @@
     - sort by   对分区内进行排序，分区不止一个时，回返回部分排序结果 `SELECT  name, age, zip_code FROM person SORT BY name ASC, age DESC;`
     - cluster by 对数据重分区，每个分区内数据排序 = 先distribute by 后 sort by,不保证数据的总顺序
 - 对连续性数目的校验，转化成对第一个不连续的排序值进行校验
+    - 日期，减去排序的序号，对结果分组
+        - 对满足条件的及结果进行排序的，相当于删去不满足条件的记录，不连续的会分布在其他日期
     - 按照日期排序，
         - rank() 不连续的排序 over（partition by xx order by xx）
         - dense_rank() 连续的排序
@@ -25,7 +27,30 @@
         - lag lead
 - 直接定位星期二
     - sqlserver datename(dw,getDate(n))
-    - 
+- 窗口函数
+    - 语法：`窗口函数` `over` `窗口定义`
+    - 窗口定义
+        - partition分区：按照哪个key分组
+        - order 排序信息，组内数据如何排序
+        - frame窗框定义：分组排序好的数据上，如何划定窗框，
+    - frame 窗框
+        - RowType根据行偏移的范围来划定窗口, 对应语句中是`rows between xx and xx`这类的  
+        - RangeType根据列的值的范围来划定窗口, 对应语句中是`range between xx and xx`这类的
+            - 举例来说, 如果有个股票价格表记录各支股票每天的价格, 如果要计算MA30(30日均线值)的话, 就可以`select *, avg(price) over (partition by stock_id order by dt range between 30 PRECEDING and current row) --假定dt是数值表示的`
+        - 5种边界值
+            - UNBOUNDED PRECEDING: 无限往前, 或者说从无限小/从第一行开始, 无上界. 对于RowType和RangeType是一个效果的.
+            - UNBOUNDED FOLLOWING: 无限往后, 或者说是直到最后一行, 无下界. 对于RowType和RangeType是一个效果的
+            - offset PRECEDING: offset是一个数值 如30, 当是RowType时, 表示从当前行往前30行开始. 当RangeType时, 表示从当前行OrderBy那列的值减30开始(所以必须是能做减法的数值类型), 比如上面的MA30的例子, 是按dt日期排序, 取30天前到现在的范围定义的窗框.
+            - offset FOLLOWING: 同上
+            - CURRENT ROW: 当前行
+```
+SELECT name, dept, RANK() OVER (PARTITION BY dept ORDER BY salary) AS rank FROM employees;
+
+SELECT name, dept, DENSE_RANK() OVER (PARTITION BY dept ORDER BY salary ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS dense_rank FROM employees;
+
+SELECT name, salary, LAG(salary) OVER (PARTITION BY dept ORDER BY salary) AS lag,
+    LEAD(salary, 1, 0) OVER (PARTITION BY dept ORDER BY salary) AS lead FROM employees;
+```
 
 问题
 * [9.2、Spark SQL]()
