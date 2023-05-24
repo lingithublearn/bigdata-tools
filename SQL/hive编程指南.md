@@ -131,7 +131,50 @@
   - 修改存储属性 `alter table name set fileformat sequencefile`
 
 # 第五章 数据操作
+- 向管理表中装载数据
+  - overwrite 数据会鲜先被删除
+  - inpath 路径下不能有任何文件夹
+```
+load data local inpath `xxx`
+overwrite into table name 
+partition ()
+```
+- 通过查询语句向表中插入数据
+  - insert overwrite table xx select * from xxx
+  - 动态分区插入
+- 单个查询语句中创建表并加载数据
+  - `create table name as select xx,xx from xx`
+- 导出数据
+  - hadoop fs-cp xxx xxx
+  - `insert overwrite local derectoty 'xxx' select xxx`
 
+# 第六章 查询
+- select from
+  - 表别名 e
+  - 集合数据类型，用json语法输出
+  - 引用集合元素，map元素，struct元素
+  - 正则表达式 \`price.\*\`
+  - 使用列值计算
+  - 算术运算符，隐式的类型转换
+  - 使用函数
+    - 数学函数：floor,round ,ceil向上取整，返回bigint类型
+    - 聚合函数
+      - count()
+      - avg()
+      - min,max
+      - collect_set()
+    - 表生成函数：单列扩展成多列或者多行
+      - explode()
+    - 其他内置函数
+      - 字符串函数：concat_ws()
+      - 日期函数
+  - limit语句
+  - 列别名
+  - 嵌套 select语句 from 可以再select前
+  - case when then else end
+  - 什么情况下避免mapreduce
+    - 简单的select * from xx
+- where 子句 
 
 
 
