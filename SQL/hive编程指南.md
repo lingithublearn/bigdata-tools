@@ -175,7 +175,60 @@ partition ()
   - 什么情况下避免mapreduce
     - 简单的select * from xx
 - where 子句 
+  - 不能在where 中使用列别名，但是可以用一个嵌套的select 语句
+  - 谓词操作符
+  - 浮点数比较
+    - >0.2 会输出0.2
+    - float为0.2000001 double为 0.2000000000001 都为近似值
+  - like 和 rlike
+    - like 简单正则
+    - rlike 正则表达式
+- group by
+  - 分组
+  -  having 语句
+-  join 语句
+  - inner join xx on xx 等值连接
+  - 优化
+    - 保证表的大小，从左到右式一次增加的
+    - 标记机制 `/*+STREAMTABLE(s)*/`
+  - left outer join
+  - outer join
+  - right outer join
+  - full outer join
+  - left semi-join 左表满足右表on条件语句
+  - 笛卡尔积join
+  - map-side join
+- order by 和sort by
+  - order by是全局排序，可能运行时间过长
+  - sort by 局部排序（每个reducer中排序）
+- sort by和 distribute by
+  - distrubute by 相同key的会分发到同一个reducer中
+  - sort by 参上
+- cluster by
+  - cluster by = distribute by + sort by
+  - 会剥夺sort by的并行性
+- 类型转换   
+  - cast(column as type)
+  - 类型转换binary值
+- 抽样查询
+  - `tablesample(bucker 3 out of 10 on rand())`
+  - 数据块抽样`tablesample(0.1 percent)`
+  - 分桶表的输入裁剪
+- union all 合并表，列类型需要相同
 
+# 第七章 视图
+hive 目前暂不支持物化视图
+
+- 使用视图来降低查询难度 `create view table as select xxx`
+- 使用视图来限制基于条件过滤的数据
+  - 用户需要有访问整个底层原始表的权限，视图才能佛给你做
+- 动态分区中的视图和map类型
+- 视图零零碎碎的事
+
+# 第八章 索引
+
+索引功能有限
+-创建索引
 
 
 
