@@ -228,7 +228,34 @@ hive 目前暂不支持物化视图
 # 第八章 索引
 
 索引功能有限
--创建索引
+- 创建索引
+```
+create index in-name 
+on table name(column)
+as xxx
+with deferred rebuild
+idexpropreties(xxx=xxx,xxx=xxx)
+in table name
+partitioned by()
+comment ''
+```
+  - as 指定了索引处理器
+  - in table 不一定用，在一张新表里保存索引数据
+  - Bitmap索引
+- 重建索引 `dererred rebuild alter index` 是原子性的
+- 显示索引 `show formatted index on table`
+- 删除索引 `frop index if exists index on table name`
+  - 不允许直接使用drop table 语句前删除索引表
+- 实现一个定制化的索引处理器
+
+
+# 第九章 模式设计
+hive 是反模式的
+- 按天划分的表 ： 应该使用分区
+- 关于分区
+  - 分区过多，会于很多文件，元数据信息可能超过namenode的处理能力
+  - 按照时间粒度，分区数量的增涨是均匀的，灭个分区下的文件大小至少是文件系统中块的大小或块大小的数倍
+  - 
 
 
 
