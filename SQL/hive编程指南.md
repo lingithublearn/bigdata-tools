@@ -255,8 +255,151 @@ hive 是反模式的
 - 关于分区
   - 分区过多，会于很多文件，元数据信息可能超过namenode的处理能力
   - 按照时间粒度，分区数量的增涨是均匀的，灭个分区下的文件大小至少是文件系统中块的大小或块大小的数倍
-  - 
+  - 按照两个级别的分区，并且使用不同的维度
+- 唯一键和标准化
+  - 没有主键和序列密钥生成的自增键，避免对飞标准化数据进行join操作
+  - 非标准化：最小化磁盘寻道，优化磁盘驱动器的I/O性能。但是可能导致数据重复或不一致
+  - 有别于传统的设计原则，入复杂的数据类型
+- 同一份数据多种处理
+  - 从一个数据源产生多个数据聚合 `from history insert overwrite sales select * where action = a insert overwrite credits where action = b`
+- 对每个表的分区
+  - 对临时表分区，可以避免重跑时，对当前的表覆盖，导致出错
+  - 隔离数据，优化查询
+  - 用户需要管理中间表并删除旧分区
+- 分桶表数据存储
+  - 将数据集分解成更容易管理的若干部分
+  - `clustered by (user_id) into 96 buckets`
+  - 桶的数量是固定的，适合抽样
+- 为表增加列
+  - 允许在原始数据文件之上定义一个模式：为数据文件增加新的字段是，可以容易的适应表定义的模式
+  - 提供了SerDe抽象：从输入中提取数据
+  - 无法在已有字段的开始或者中间增加字段
+- 使用列存储表
+  - 通常是行式存储，也提供列式来混合列式存储信息
+  - 重复数据
+  - 多列
+- 总是使用压缩
 
+# 第十章 调优
+- 使用EXPLAIN
+  - 查询计划和其他一些信息，本身不会执行
+  - 打印抽象语法树，解析成token（符号）和literal（字面值）
+    - 忽略TOK_前缀
+    - 输出写入到一个临时文件`TOK_INSERT (TOK_DESTINATION (TOK_DIR TOK_TMP_FILE))`
+    - 包含多个stage（阶段），通常stage越多需要的时间越多
+    - stage plan 比骄长和复杂，包含了这个job大部分处理过程
+      - map operator tree
+      - reduce operator tree: group by operator, File Output Operator
+      - Fetch Operator： limit
+- Explain extended
+  - 可以产生更多的输出信息
+- 限制调整
+  - 配置属性 `hive.limit.optimize.enable` 使用limit语句时，对源数据进行抽样
+  - 可能输入中有用的数据永远不会被处理到
+- join 优化
+  - 最大的表放在最右边，map_side
+- 本地模式
+  - 对小数据集，可以使用本地模式在单台机器上处理所有任务
+  - `hive.exec.mode.local.auto`
+- 并行执行
+  - `hive.exec.parallel`开启并发执行
+- 严格模式
+  - 禁止三类查询
+  - 对于分区表，必须有对分区字段过滤
+  - 使用了order by 语句，必须使用limit
+  - 限制笛卡尔积的查询
+- 调整mapper和reducer的个数
+  - cli打印reducer个数
+  - dfs -count 来计算输入量大小，类似 du -s
+  - mapred.reduce.tasks 确定给你使用较多还是较少的reducer来缩短执行时间
+- JVM的重用
+  - 会一直占用使用到的task插槽，以便进行重用
+- 索引
+- 动态分区调整
+  - hive限制分区数在1000个左右
+  - 严格模式，保证至少有一个分区是静态的
+- 推测执行
+  - 可以触发执行一些重复的任务，加快获取的那个task的结果以及进行侦测，将执行满的tasktracker加入到黑名单
+- 单个mapreduce中多个group by
+  - 将多个group 组装到单个mapreduce
+- 虚拟列
+  - 输入的文件名
+  - 文件中的块偏移量
+
+# 第十一章 其他文件格式和压缩方法
+不会强制要求将数据转换成特定的格式才能使用
+- 确定安装编解码器
+  -  `hive -e "set io.compression.codes"`
+-  选择一种压缩编/解码器
+  - 减少磁盘和网络I/O操作，但是压缩和解压缩过程会增加CPU的开销
+  - 压缩率，压缩/解压缩速度
+  - 压缩格式的文件是否可以分割：知道文件中记录的边界
+  - inputFormat定义了如何读取划分，如何将划分分割成记录
+  - OutputFormat定义了如何将这些划分写回到文件或控制台输出中
+- 开启中间压缩
+  - 对中间数据进行压缩，可以减少map和reduce task间额数据传数量
+  - 选择一个低CPU开销的编码/解码器
+  - `hive.exec.compress.intermediate`
+  - `mapred.map.output.compression.codec`修改编码/解码器
+- 最终输出结果压缩
+  - `hive.exec.compress.output`
+- sequence file 压缩格式
+  - 支持将一个文件分割成多个块
+  - `create table a stored as sequencefile`
+  - 压缩方式，none, record,block
+- 使用压缩实践
+  - hive 可以正常查看压缩数据，cat 不推荐
+  - zcat
+  - dfs -text 查看sequence数据
+- 存档分区
+  - 归档文件
+  - 减轻namenode压力
+  - 查询效率不高
+  - `alter table xxx archive partition`将表转化成一个归档表
+  - `alter table unarchive partition` 重新提取出来
+- 压缩，包扎
+
+
+# 第十二章 开发
+
+- 修改log4j 属性
+  - `hive-log4j.properties`文件来控制CLI和其他本地执行组件的日志
+  - `hive-exec-log4j.properties` 控制marreeduce task的日志
+- 连接java 调试器到hive
+  - `hive --help --debug`
+- 从源码编译hive
+  - 从svn中下载一份发行版代码，对源码进行编译
+  - 执行hive测试用例
+  - 执行hook
+- 配置hive 和Eclipse
+- maven 工程中使用hive,导入hive包
+- hive 中用hive_test进行单元测试
+  - 使用thrift 通过hiveService 来访问hive,然后写一些应用
+- 新增的插件开发工具箱（PDK）
+
+
+# 第十三章 函数
+用户自定义函数
+
+- 发现和描述函数
+  - show functions :列举但钱hive会话中加载的所有函数名称
+  - describe functions [extended ]
+- 调用函数
+- 标准函数：用一行数据中的一列或者多列数据作为参数，然后返回结果是一个值的函数。同样可以返回一个复杂对象
+- 聚合函数
+  - 聚合函数，用户自定义函数，内置函数=用户自定义聚合函数（UDAF）
+  - 接受从零行到多行的零个到多个列，饭后返回单一制
+- 表生成函数（UDTF）
+  - 接受零个或多个输入，然后产生多列或多行输出
+  - arraya(). explode()
+  - 无法从表中产生其他的列
+  - 可以通过lateral view 来实现查询
+  - `select name ,sub from employees lateral view explode(columnName) subView as sub`
+- 一个通过日期计算其星座的UDF
+  - 继承UDF类，并实现evaluate()函数
+  - 编译为jar包
+  - 加入类路径，create funvtion语句定义函数
+- UDF和GenericUDF
 
 
 
