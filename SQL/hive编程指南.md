@@ -489,5 +489,39 @@ hive 是反模式的
   - outputFormat 输出输入到一个实体中
   - 可用于从其他数据源中读取和存放数据（关系型数据库，NoSQL)
 - HiveStorageHandler
+  - hive用于连接入HBase等类似NoSQL存储的主要接口
+  - 使用NOsqlh和Hadoop 结合使用：进行实时处理工作
+  - Hadoop集群进行批处理
+- Hbase
+- Cassandra
+  - 静态列映射
+  - 动态列转置列映射
+  - Cassandra SerDe Properties
+- DynamoDB
+
+# 第十八章 安全
+hadoop 组件使用Kerberos安全认证
+- 和hadoop安全功能相结合
+- 使用hive进行验证
+  - 新创建文件设置的默认权限的umask值
+- hive中的权限管理
+  - 增加通过HiveSQL进行授权设置的功能
+  - 用户，组和角色 `show grant`
+  - grant 和revoke 权限
+- 分区级别的权限
+- 自动授权
+
+
+# 第十九章 锁
+Hive可以背认为是一个胖客户端，Hive Cli,tHRIFT server 都不是完全独立于其他实例的
+- Hive 结合zookeeper支持锁功能
+  - zookeeper对于用户来说是透明的
+  - hive 会对特定查询自动启动获取锁 `show locks`
+  - 共享锁，独占锁
+- 显示锁和独占锁
+  - 用户可以显示地管理锁， lock或者unlock table 
+  - 
+
+- 
 
 
