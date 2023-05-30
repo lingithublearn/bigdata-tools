@@ -379,7 +379,7 @@ hive 是反模式的
 
 
 # 第十三章 函数
-用户自定义函数
+用户自定义函数：更多的是对java定义的
 
 - 发现和描述函数
   - show functions :列举但钱hive会话中加载的所有函数名称
@@ -400,7 +400,94 @@ hive 是反模式的
   - 编译为jar包
   - 加入类路径，create funvtion语句定义函数
 - UDF和GenericUDF
+  - 可以支持更好的null值处理，同时可以处理一些标准UDF无法支持的编程操作`case .. when ...`
+  - nvl()
+  - 继承 GenericUDF类
+  - initialize():会被输入的每个参数调用，并最终传入到一个ObjectInspector对象中
+  - evaluate 的输入是一个deferredobject 对象数据
+  - getDisplayString()
+- 不变函数  
+  - 将自己的函数永久的加入到hive中，就需要对HIVE的java文件进行简单的修改，重新编译hive
+- 用户自定义聚合函数
+  - 会分多个阶段进行处理，基于UDAF执行的转换不同，在不同阶段的返回值类型也可能是不同的
+  - 创建一个collect udaf来模拟group_concat
+- 用户自定义表生成函数
+  - 可以返回多列或者多行的程序接口
+  - 可以产生多行数据的UDTF
+  - 可以产生具有多个字段的单行数据的UDTF
+  - 可以模拟复杂数据类型的UDTF
+- 在UDF中访问分布式缓存
+  - 可以访问分布式缓存，本地文件系统，但会显著地降低执行效率
+- 以函数的方式使用注解
+  - 定数性标注
+  - 状态性标注
+  - 唯一性
+- 宏命令 : 注意版本是否实现
+  - `create temporary macro sigmoid(x double) 1.0/(1.0+ exp(-x))   select sigmoid(2) from src limit 1`
+
+# 第十四章 streaming
+管道计算模型：为外部进程开启一个I/O管道，数据传给进程，从标准输入中读取数据，然后通过标准输出来写结果数据，最后返回到streaming api job
+对Linux/unix系统的支持
+语法：map(),reduce(),transform()
+- 恒等变换 `select transform(a,b) using '/bin/cat' as newA,newb from default.a`
+- 改变类型 `using '/bin/cat' as (newA int,newB double) from a`
+- 投影变换 
+  - 使用cut命令提取或者映射出特定的字段
+  - `using '/vin/cut -f1' as newA,newB from b`
+- 操作变换
+  - /bin/sed 接受输入数据流，然后按照用户的指定进行编辑，最后将编辑结果输出到数据流中
+  - `/bin/sed s/4/10` 将字符串4替换成10
+- 使用分布式内存
+  - add file 将脚本文件加入到分布式缓存中，可以使transform task可以直接使用脚本
+- 由一行产生多行
+- 使用streaming 进行聚合计算
+- cluster by, distribute by, sort by
+  - cluster by：类似的数据可以分发到同一个reduce task中，保证数据有序
+    - 使用了两个py脚本
+  - cluster by = distribute by+sort by
+- GrnericMR tools for streaming to JAVA
+  - 结合java代码
+- 计算cogroup
+  - 使用union all和cluster by 可以实现group by操作的常见效果
 
 
+# 第十五章 自定义hive文件和记录格式
+- 文件于记录格式
+- 阐明create table 句式
+- 文件格式
+- 记录格式：SerDE
+- CSV 和 TSV
+- ObjectInspector
+- Thing Big Hive Reflection ObjectInspector
+- XML UDF
+- Xpath 相关的函数
+- json SerDe
+- Avro Hive SerDe
+- 二进制输出
+
+
+# 第十六章 Hive的Thrift服务
+
+允许通过指定端口访问hive。软件框架，用于跨语言的服务开发
+- 启动thrift server
+- 配置 groovy使用hiveServer
+- 连接到HiveServer
+- 获取集群状态信息
+- 结果集模式
+- 获取结果
+- 获取执行计划
+- 元数据存储方法
+- 管理hiveServer
+- Hive THriftMetastore
+
+
+# 第十七章 存储处理程序和NoSQL
+
+存储处理程序时一个结合InputFormat,OutputFormat,SerDe和HIVE需要使用的特定的代码，来将外部实体作为标准的Hive表进行处理的整体
+- Storage Handler Background
+  - inputFormat 对不同源的数据格式化
+  - outputFormat 输出输入到一个实体中
+  - 可用于从其他数据源中读取和存放数据（关系型数据库，NoSQL)
+- HiveStorageHandler
 
 
