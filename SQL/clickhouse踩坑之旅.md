@@ -85,3 +85,21 @@ SETTINGS index_granularity = 8192
   
 # 5. 窗口函数
   - v21.9版本正式支持，早期的版本需要借助array函数
+  
+# 6. UDF
+  ```CREATE FUNCTION {fn_name} as ({parameters}) -> {code} 
+    create function testFunc as (a,b) -> (a+b)
+     select testFunc(1,2)
+  在data/user_defined 目录下保存了UDF的源数据
+  也可以用drop function 删除UDF
+  select * from system.functions where name = 'testFunc'
+  ```
+  家里是20.8，山东现场时21.3
+不支持create function + lamda，应该要21.10
+外部配置UDF，最低要v21.11
+
+  
+  
+  
+  
+  
