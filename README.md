@@ -11,6 +11,8 @@
   - [hive编程指南](https://github.com/lingithublearn/bigdata-tools/blob/main/SQL/hive%E7%BC%96%E7%A8%8B%E6%8C%87%E5%8D%97.md)
 5. [数据分析](https://github.com/lingithublearn/bigdata-tools/blob/main/%E6%95%B0%E6%8D%AE%E5%88%86%E6%9E%90/%E6%95%B0%E7%90%86%E7%BB%9F%E8%AE%A1.md)
 6. [数据相关知识点](https://github.com/lingithublearn/bigdata-tools/blob/main/%E6%95%B0%E6%8D%AE%E5%88%86%E6%9E%90/data.md)
+7. 编程语言
+  - [流畅的python]()  
  - 数据仓库
  - 数据中台
  - 数据建模
