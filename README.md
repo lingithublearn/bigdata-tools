@@ -12,7 +12,7 @@
 5. [数据分析](https://github.com/lingithublearn/bigdata-tools/blob/main/%E6%95%B0%E6%8D%AE%E5%88%86%E6%9E%90/%E6%95%B0%E7%90%86%E7%BB%9F%E8%AE%A1.md)
 6. [数据相关知识点](https://github.com/lingithublearn/bigdata-tools/blob/main/%E6%95%B0%E6%8D%AE%E5%88%86%E6%9E%90/data.md)
 7. 编程语言
-  - [流畅的python]()  
+  - [流畅的python](https://github.com/lingithublearn/bigdata-tools/blob/main/%E8%AF%AD%E8%A8%80/%E6%B5%81%E7%95%85%E7%9A%84python.md)  
  - 数据仓库
  - 数据中台
  - 数据建模
