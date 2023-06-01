@@ -95,8 +95,12 @@ SETTINGS index_granularity = 8192
   select * from system.functions where name = 'testFunc'
   ```
   家里是20.8，山东现场时21.3
-不支持create function + lamda，应该要21.10
-外部配置UDF，最低要v21.11
+  不支持create function + lamda，应该要21.10
+  可执行的UDF，最低要v21.11
+  
+ - 用户自定义外部函数
+    -  在config.xml中增加`<user_defined_executable_functions_config>*_function.xml</user_defined_executable_functions_config>`
+    - 在对应的xml中自定义申名文件
 
   
   
