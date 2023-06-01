@@ -100,7 +100,10 @@ SETTINGS index_granularity = 8192
   
  - 用户自定义外部函数
     -  在config.xml中增加`<user_defined_executable_functions_config>*_function.xml</user_defined_executable_functions_config>`
-    - 在对应的xml中自定义申名文件
+    - 在对应的xml中自定义声明文件
+    - 声名方法
+    - 编写python 脚本
+    - 方法测试 `system reload functions   select * from system.functions where name = ''`
 
   
   
