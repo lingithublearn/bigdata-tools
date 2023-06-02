@@ -46,7 +46,7 @@ SETTINGS index_granularity = 8192
     - 可能不能使用on cluster cluster ，需要从视图表中查询全量的，数据的转移量比较大
   - 删掉原表，drop table tbname on cluster cluster
     - 可能存在数据量超过限制
-      - 如果仍然需要在不重新启动ClickHouse服务器的情况下删除表，请创建 <clickhouse-path>/flags/force_drop_table 文件并运行DROP查询
+      - 如果仍然需要在不重新启动ClickHouse服务器的情况下删除表，请创建 clickhouse-path/flags/force_drop_table 文件并运行DROP查询
       - touch /clickhouse/flags/force_drop_table
       - chown clickhouse:clickhouse /clickhouse/flags/force_drop_table
       - chmod 666 /clickhouse/flags/force_drop_table
@@ -66,6 +66,7 @@ SETTINGS index_granularity = 8192
 - 可能原因
   - 不能识别自身 `SELECT * FROM system.clusters;`
   - 历史任务有错，卡住
+  
   ```
   SELECT * FROM system.zookeeper WHERE path = '/clickhouse/task_queue/ddl/';
   SELECT * FROM system.zookeeper WHERE path = '/clickhouse/task_queue/ddl/query-0000001000/';
@@ -104,6 +105,41 @@ SETTINGS index_granularity = 8192
     - 声名方法
     - 编写python 脚本
     - 方法测试 `system reload functions   select * from system.functions where name = ''`
+  
+  
+# 7 位图
+  - 简介
+    - 优点：运算效率高，占用内存小
+    - 缺点：数据稀疏时，浪费空间
+    - 需要一种高效的压缩算法，来解决空间浪费问题
+  - 位图压缩算法-roaringBitmap
+    - 思路：根据32位无符号整数，根据高16位对数据进行分桶，将数据放入container
+    - 底层数据结构
+      - ArrayContainer:当容量超过4096，会将container转换为bitmap container
+      - BitmapContainer
+      - runContainer
+      - 算法会根据容量自动选择数据结构
+  - 于clickhouse的实践
+    - 官方的驱动
+    - bitmap字段使用AggregateFunction(groupBitmap,UInt32)类型，可以存储位图数据
+    - 大批量写入CK的官方推荐写法
+    - 位图类型转换，ck包自带的类型
+    - 性能测试
+  - 使用场景
+    - 基站用户快照：亿级别的数据
+    - 用户数据过滤
+      - 位运算
+    - 数据集合的去重，交并集计算
+  - 常见的SQL
+    - bitmapToArray() : 转换
+    - groupBitmapMergeState() 合并去重
+    - bitmapCardinality() 函数用于返回位图中的不同数字的数量
+  - bug
+    - 超过32位无法显示——修改序列化方式
+    - long类型的整数需要用到有符号的Int64类型
+  - 问题
+    - 社区
+    - 怎么查 
 
   
   
