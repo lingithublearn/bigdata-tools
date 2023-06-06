@@ -365,6 +365,46 @@ greet()
 
 # 项目
 # 外星人入侵
+# 数据可视化
+# 第十五章 数据可视化
+通过可视化便是来探索数据，与数据挖掘紧密相关
+最流行的工具是matplotlib
+- 安装matplotlib
+	- python -m pip install matplotlib  -i http://pypi.douban.com/simple --trusted-host pypi.douban.com
+	- 直接安装，会自动选择版本，国内可能无法访问，需要设置镜像源
+	- 测试： import matplotlib
+	- matplotlib画廊：http://matplotlib.org
+- 绘制简单的折线图
+	- 将列表传递给函数plot(),用show()打开查看器
+	```
+	import matplotlib.pyplot as plt 
+	squares = [1, 4, 9, 16, 25]
+	plt.plot(squares) 
+	plt.show()
+	```
+	- 修改标签文字和线条粗细：title,xlabel,tick_params
+	- 矫正图形
+		- 给plot同时提供输入值和输出值
+	- 使用scatter()绘制散点图并设置样式：plt.scatter()
+	- 使用scatter()绘制一系列点
+	- 自动计算数据：list（range(1,1001)）
+	- 删除点的轮廓 edgecolor= 'none'
+	- 自定义颜色
+	- 使用颜色映射
+	- 自动保存图表： plt.savefig()
+- 随机漫步
+	- 创建randomWalk()类
+		- -init_()和fill-walk():计算随机漫步金国的所有点
+	- 选择方向
+	- 绘制随机漫步图
+	- 模拟多次随机漫步
+	- 设置随机漫步图的样式
+		- 给点着色
+		- 重新绘制起点和终点
+		- 隐藏坐标轴
+		- 增加点数
+		- 调整尺寸以适合屏幕
+
 
 
 
