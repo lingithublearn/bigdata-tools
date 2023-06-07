@@ -404,8 +404,59 @@ greet()
 		- 隐藏坐标轴
 		- 增加点数
 		- 调整尺寸以适合屏幕
+	- 使用Pygal模拟掷骰子
+		- python -m pip install --user pygal -i http://pypi.douban.com/simple --trusted-host pypi.douban.com
+		- Pygal画廊
+		- 创建Die类
+		- 掷骰子
+		- 分析结果
+		- 绘制直方图
+		- 同时掷两个骰子
+	- 同时掷两个面数不同的骰子
 
+# 第十六章 下载数据
+使用模块csv来处理CSV格式
+- CSV文件格式
+	- 分析文件头 `reader = csv.reader()`+ `next(reader)`
+	- 打印文件头及其位置`for index, column _header in enumerate(header_row):`
+	- 提取并读取数据`for row in reader:`
+	- 绘制气温图表
+		- matplotlib:plt.plot
+		- datetime.strptime('2014-7-1','%Y-%m-%d')
+		- 添加日期：`fig.autofmt_xdate`
+	- 涵盖更长的时间
+	- 在绘制一个数据系列
+	- 给图标区域着色` plt.fill_between(dates, highs, lows, facecolor='blue', alpha=0.1)` alpha是颜色的透明度
+	- 错误检查
+- 制作世界人口地图：JSON格式
+	- 下载数据
+	- 提取相关数据`import json`+`data = json.load(f)`+ `data['year']` 
+	- 将字符串转换为数字值str(),int可能转换出错，需要先float转换
+	- 获取两个字母的国别码`from pygal.i18n import COUNTRIES`+ `print(COUNTRIES[country_code])`
+	- 制作世界地图，Worldmap
+	- 在世界地图上呈现数字数据
+	- 绘制完整的世界人口地图
+	- 根据人口数量将国家分组
+	- 设置世界地图的样式`RotateStyle`
+	- 加亮颜色主体
 
+# 第十七章使用API
+- 使用web api
+	- 与使用非常具体的URL请求特定信息的程序交互
+	- git和github
+	- 使用api调用请求数据`https://api.github.com/search/repositories?q=language:python&sort=stars`
+	- 安装requests
+	- 处理api响应`requests.get(url)`+`r.json().keys()`
+	- 处理响应字典
+	- 概述最受欢饮的仓库
+	- 监视api的速率限制`https://api.github.com/rate_limit`
+- 使用Pygal可视化仓库
+	- 改进pygal图表
+	- 添加自定义工具提示
+	- 根据数据绘图
+	- 添加单机链接
+- HACKER News API
+- 
 
 
 
