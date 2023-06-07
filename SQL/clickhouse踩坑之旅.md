@@ -104,6 +104,8 @@ SETTINGS index_granularity = 8192
     - 在对应的xml中自定义声明文件
     - 声名方法
     - 编写python 脚本
+      - 处理多行输入：`for line in sys.stdin:` + `line`
+      - 注意数据输入和输出格式：一般为TabSeparaterd或者JSONEachRow
     - 方法测试 `system reload functions   select * from system.functions where name = ''`
   
   
