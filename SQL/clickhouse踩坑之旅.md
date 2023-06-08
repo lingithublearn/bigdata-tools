@@ -106,7 +106,10 @@ SETTINGS index_granularity = 8192
     - 编写python 脚本
       - 处理多行输入：`for line in sys.stdin:` + `line`
       - 注意数据输入和输出格式：一般为TabSeparaterd或者JSONEachRow
+      - python方法;sys.stdin 测试通过先
+      - 注意tab和空格的区别，不能混用
     - 方法测试 `system reload functions   select * from system.functions where name = ''`
+    - 查看报错`set send_logs_level='error';` 可以是trace
   
   
 # 7 位图
