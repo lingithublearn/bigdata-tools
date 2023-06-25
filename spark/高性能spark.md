@@ -36,21 +36,66 @@ spark on yarn 依赖hdfs,s3,cassandra等文件存储管理系统存储数据，�
      懒式操作rdd，直到rdd需要计算，可以在spark application生命周期内，一直保存rdd
      transform 返回的一个新的rdd，数据是不可变的
      以上特点，让spark易使用，容错，可伸缩的，高效的
-  - 懒计算
-    很多内存存储系统，是基于细粒度的可变对象  
-    spark是基于RDD，不可变的，懒计算  
-    只要需要输出一些值到driver或者到非spark系统，如hadoop时，才会计算
-    - 懒计算的性能和可用性优势
-      - 对于窄依赖，可以将多个算子指令发送到同一分区，避免发送多次，和访问多次结果，理论上可以降低计算复杂度
-      - 相比mapreduce,可以用更少的代码
-      - 修改函数逻辑时，mapreduce需要对mapper增加filter逻辑，避免多次传输数据
-    - 懒执行和容错能力
-      - 每个分区都有重新计算的依赖
-      - 其他分布式计算方案，一般是记录更新或者跨机器复制数据
-      - spark有计算的所有链条信息，可以直接重新计算
-    - deug  
-    spark 不会直接返回所有信息，会知道执行action算子时，因此在一个能返回所有调试信息的环境测试很重要
-- 
+- 懒计算
+  - 简介
+    - 很多内存存储系统，是基于细粒度的可变对象  
+    - spark是基于RDD，不可变的，懒计算  
+    - 只要需要输出一些值到driver或者到非spark系统，如hadoop时，才会计算
+  - 懒计算的性能和可用性优势
+    - 对于窄依赖，可以将多个算子指令发送到同一分区，避免发送多次，和访问多次结果，理论上可以降低计算复杂度
+    - 相比mapreduce,可以用更少的代码
+    - 修改函数逻辑时，mapreduce需要对mapper增加filter逻辑，避免多次传输数据
+  - 懒执行和容错能力
+    - 每个分区都有重新计算的依赖
+    - 其他分布式计算方案，一般是记录更新或者跨机器复制数据
+    - spark有计算的所有链条信息，可以直接重新计算
+  - deug  
+    - spark 不会直接返回所有信息，会知道执行action算子时，因此在一个能返回所有调试信息的环境测试很重要
+- 内存持久化和内存管理
+  - spark将数据加载到内存中，而不是写入磁盘，方便访问，在重复性计算中，性能最优
+  - 三种内存管理
+    - 内存中的反序列化数据：时间最快，因为不用序列化，但可能不是内存效率最高的
+    - 内存中序列化数据：CPU密集，但内存效率更高，空间效率更高
+    - 磁盘：对分区太大的数据，大量计算的唯一科兴方案
+  - LRU原则，least recently used 最近最少用原则
+- 不变性和RDD接口
+  - 简介
+    - RDD接口有一些属性：RDD的依赖，数据局部性的信息
+    - RDDs有静态属性和不可变性
+  - 创建
+    - 从一个已有的RDD转换来
+    - 从sparkContext来：spark cluster和spark app之间的连接，读取数据存储的数据
+    - 从dataframe或dataset转变而来,可以使用spark sql
+  - 属性：分区属性，分割，首选位置
+    - partitions():返回分布式数据集的分区对象
+    - iterator(): 返回父分区给定的迭代器元素
+    - dependencies(): 返回依赖项的序列，可以理解为DAG
+    - partitioner(): 返回分区对象的scala选项类型
+    - preferedLocations(): 返回分区的数据位置信息
+- RDD的类型
+  - 有属性和共有方法
+  - PairRDDFunctions, OrderedRDDFunctions，GroupedRDDFunctions 有自己的特殊方法，隐式类型转换
+  - 不同的RDD 实现，有不同的功能
+- RDD的功能，转换与操作，transformation and action
+  - action: 返回不是RDD
+    - 从driver拿数据，输出数据
+    - collect, count, collectAsMap, sample, reduce, and take.
+    - saveAsTextFile, saveAsSequenceFile, saveAsObjectFile
+    -  foreach
+  - transfromation: 返回另一个rdd
+    - sort, reduce, group, sample, filter, and map distributed data
+- 宽窄依赖
+  - 窄依赖：父分区只有一个子分区，可以用数据的任意子集计算
+    -  map, filter, mapPartitions, flatMap
+    -  coalesce
+  - 宽依赖：父分区不止一个，需要用到分区信息
+    - 数据根据数值分区，需要知道分区内的数据
+    -  groupByKey, reduceByKey, sort, and sortByKey
+  - shuffle代价很大，数据量越大，越多数据需要移动的时候代价越大
+
+
+## spark job scheduling 周期计划
+
 
 
 
