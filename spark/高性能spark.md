@@ -95,8 +95,25 @@ spark on yarn 依赖hdfs,s3,cassandra等文件存储管理系统存储数据，�
 
 
 ## spark job scheduling 周期计划
+- 简介
+  - 一个spark集群可以同时运行多个spark程序，这些程序对应一个spark上下文
+  - 介绍，spark怎么启动job：计算RDD transform的过程
+- 跨应用的资源分配
+  - 静态分配：分配有限的最大资源并在生命周期内保留
+  - 动态分配：根据一系列估计资源需求的启动，来增加或减少executors,从1.2开始
+- spark 应用application
+  - 一个driver program 启动一个sparkContext，定义了一系列spark jobs
+  - sparkContext 定义了多少资源会被分配给executor
+  - 一个node 可以有多个executor，一个executor不能跨节点。一个RDD可以跨executor，一个分区不能跨executor
+- 默认spark 调度
+  - job 先进先出
+  - 循环方式分发task，保证公平调度
 
-
+## spark job的结构/解剖
+- 每个action操作，对应一个job。
+- 一个job由一系列stages组成：包含最终的RDD所需的数据转换
+- 一个stage 由一系列task: 在executor上执行，并行计算着的
+![image](https://github.com/lingithublearn/bigdata-tools/assets/87681054/05a10c54-5b38-43ee-b5e7-11cc8aba3333)
 
 
 
