@@ -57,7 +57,7 @@ spark on yarn 依赖hdfs,s3,cassandra等文件存储管理系统存储数据，�
     - 内存中的反序列化数据：时间最快，因为不用序列化，但可能不是内存效率最高的
     - 内存中序列化数据：CPU密集，但内存效率更高，空间效率更高
     - 磁盘：对分区太大的数据，大量计算的唯一科兴方案
-  - LRU原则，least recently used 最近最少用原则
+  - LRU原则，least recently used 最少最近用原则
 - 不变性和RDD接口
   - 简介
     - RDD接口有一些属性：RDD的依赖，数据局部性的信息
@@ -110,11 +110,90 @@ spark on yarn 依赖hdfs,s3,cassandra等文件存储管理系统存储数据，�
   - 循环方式分发task，保证公平调度
 
 ## spark job的结构/解剖
-- 每个action操作，对应一个job。
-- 一个job由一系列stages组成：包含最终的RDD所需的数据转换
-- 一个stage 由一系列task: 在executor上执行，并行计算着的
+- 简介
+  - 每个action操作，对应一个job。
+  - 一个job由一系列stages组成：包含最终的RDD所需的数据转换
+  - 一个stage 由一系列task: 在executor上执行，并行计算着的
 ![image](https://github.com/lingithublearn/bigdata-tools/assets/87681054/05a10c54-5b38-43ee-b5e7-11cc8aba3333)
 
+- DAG 有向无环图
+  - 为每一个job的stages 构建一个DAG
+  - 确定每个task的位置，并传递信息给任务调度
+- jobs
+  - 是spark执行层级最大的元素
+  - DAG的边缘由宽窄依赖决定
+- stages
+  - 宽依赖定义了jog里stages的边界
+  - 每个stage 对应了宽依赖导致的清洗依赖，即一个stage包含多个联系的窄依赖，即一个新的stage意味着需要节点之间的网络通信
+- tasks
+  - 执行层级中的最小粒度，代表一个本地计算，一个stage中的所有task是对数据的不同分片执行相同的代码
+  - task的数目由输出的RDD的分区数目决定
+  - execcutor核心数 = executor数目* 一个executor的core数目
+  - 每个分区的数据完成计算的最小单位
+
+# 第三章 DataFrames Datasets and spark SQL
+- 简介
+  - 有更高效的存储选项，先进的优化器，对序列化数据的直接操作
+  - dataframe/dataset，对比RDD有额外的结构信息
+  - dataframe 比 dataset多了row object，没有编译时类型检查
+- 从sparksession开始
+  - import
+  - 使用builder 模式，getOrCreate()
+  - hiveContext，SQLcontext是1.0版本的
+- spark SQL 依赖
+```maven
+    <dependency> <!-- Spark dependency -->
+   <groupId>org.apache.spark</groupId>
+   <artifactId>spark-sql_2.11</artifactId>
+   <version>2.0.0</version>
+  </dependency>
+  <dependency> <!-- Spark dependency -->
+   <groupId>org.apache.spark</groupId>
+   <artifactId>spark-hive_2.11</artifactId>
+   <version>2.0.0</version>
+  </dependency>
+```
+  - 管理 spark依赖
+    - sbt-spark-package插件
+    - hive Metastore
+  - 避免hive jars
+- 基础的表结构
+  - dataFrame有schema
+  - 显示表结构，printSchema()
+  - structField 可以嵌套，structTypes
+- dataFrame api
+  - transformations
+    - filter:pandaInfo.filter(pandaInfo("happy") !== true)
+    - 实现了很多运算符，数学运算符
+    - explode,when-otherwise
+    - 特殊函数，应对缺失数据和脏数据
+    - 跨越逐行转换：去重
+    - 聚合 aggregates and groupBy: 打印常用的统计值
+    - 窗口：order by/partitionBy/rowsBetween
+    - sorting 排序，可以配置limit获得topK,取样可以用sampling
+    - 多个dataFrame join
+    - 累集操作：unionAll，intersect,except,distinct
+  - 旧的SQL查询和与HIVE data交互
+    - 注册为临时表/save
+    - 也可以直接从文件路径查询
+- dataFrames /datasets 的数据含义
+  - Tungsten:是spark SQL的组件之一
+  - 压缩率更好，时间更短，比java和Kryo
+- 数据下载和保存函数 load / save
+  - dataFrameWriter and DataFrame Reader
+  - formats 格式
+    - JSON：采样比可调
+    - JDBC：jar包，类型包含在url中，read（），write()
+    - parquet: 列式存储格式
+    - hive tables:直接 read,write
+    - RDDS: createDataFrame(rowRdd,schema),返回，使用 .rdd
+    - 本地集合
+    - 额外的格式：CSV
+  - 保存模式
+    - overwrite，append,ignore,errorIfExists
+  - 分区：用于写出，和下流使用，partitionBy
+- DataSets
+  - 简介：支持编译时类型检查
 
 
 
