@@ -343,8 +343,23 @@ spark on yarn 依赖hdfs,s3,cassandra等文件存储管理系统存储数据，�
         - 过滤出量小的键值，手动join
 - SPARK SQL joins
   - 简介
-    - 降低，或者重排序操作，来使jpin更高效
+    - 降低，或者重排序操作，来使join更高效
     - 但是也放弃了操作分区的功能
   - dataframe join
+    - `df.join(otherDf, sqlCondition, joinType)`
+    - 特殊，left-semi: 用右表进行过滤，保留存在的。left-anti:用右表进行过滤，保留不存在的
+    - 广播hash join `df1.join(broadcast(df2), "key")`
+    - 自己 join `val joined = df.as("a").join(df.as("b")).where($"a.name" === $"b.name")`
 
+# 第五章 高效的转化
+
+- 宽窄转化
+  - 简介
+    - 从输出开始看，往回看输入
+    - 从父分区出发看是否要分发到多个子区
+  - 对性能的影响
+    - 窄依赖，不用数据迁移，可以在一个stage中完成
+    - 宽依赖，需要数据迁移和电位磁盘I/O，下一步计算需要等待上一步shuffle完成
+  - 对容灾
+    - 
 
