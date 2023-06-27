@@ -194,6 +194,39 @@ spark on yarn 依赖hdfs,s3,cassandra等文件存储管理系统存储数据，�
   - 分区：用于写出，和下流使用，partitionBy
 - DataSets
   - 简介：支持编译时类型检查
+  - 与RDD,DataFrame 本地数据集合的转换
+    - dataset是dataframe的别名（Scala）
+    - 使用as转化dataframe to dataset
+    - createDataSet()可以转化成本地数据集合为dataset
+      
+  ```scala
+   def fromDF(df: DataFrame): Dataset[RawPanda] = {
+     df.as[RawPanda]
+   }
+    def toRDD(ds: Dataset[RawPanda]): RDD[RawPanda] = {
+     ds.rdd
+   }
+  def toDF(ds: Dataset[RawPanda]): DataFrame = {
+     ds.toDF()
+   }
+  ```
+  - 编译时强类型：清楚输入和输出时的类型要求
+  - 更容易使用功能性转换（类似RDD）`ds.map{rp => rp.attributes.filter(_ > 0).sum}`
+  - 关系转换（relation transfromation）`ds.select($"id".as[Long], ($"attributes"(0) > 0.5).as[Boolean])`
+  - 多个dataset 关系转换 `unionAll intersect except distinct`
+  - 汇聚操作: 需要类型申明
+    ```scala
+     def maxPandaSizePerZip(ds: Dataset[RawPanda]): Dataset[(String, Double)] = {
+     ds.map(rp => MiniPandaInfo(rp.zip, rp.attributes(2)))
+     .groupByKey(mp => mp.zip).agg(max("size").as[Double])
+     }
+     def maxPandaSizePerZipScala(ds: Dataset[RawPanda]): Dataset[(String, Double)] = {
+       ds.groupByKey(rp => rp.zip).mapGroups{ case (g, iter) =>
+         (g, iter.map(_.attributes(2)).reduceLeft(Math.max(_, _)))
+       }
+     }
+    ```
+- 用户自定义函数，聚合函数进行扩展
 
 
 
