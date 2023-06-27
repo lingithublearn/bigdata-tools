@@ -283,5 +283,68 @@ spark on yarn 依赖hdfs,s3,cassandra等文件存储管理系统存储数据，�
 # 第四章 joins 连接操作（SQL and Core）
 - 简介
   - 可能需要特殊的性能条件，网络通信，也可能创建超出性能的大数据集和
+- spark Core Joins
+  - 简介
+    - 父RDD有分区
+    - 部分RDD有分区
+    - 都有分区，只用窄依赖，RDD的相同分区将汇聚成一个，或打乱
+  - 选择join类型
+    - 有重复键容易导致数据激增
+    - 内连接，容易导致丢数据，建议左外或右外
+    - 有容易定义的键的子集，且不需要，建议尽早过滤，减少shuffle
+    ```scala
+     def outerJoinScoresWithAddress(scoreRDD : RDD[(Long, Double)],
+       addressRDD: RDD[(Long, String)]) : RDD[(Long, (Double, Option[String]))]= {
+         val joinedRDD = scoreRDD.leftOuterJoin(addressRDD)
+         joinedRDD.reduceByKey( (x, y) => if(x._1 > y._1) x else y )
+     }
+    ```
+  - 选择执行计划
+    - 原理：将不同的RDD按照相同的哈希分区计算，保证 同一个键值的数据在同一个分区
+    - 避免:如果RDD是共定位的，shuffle可以避免
+      - RDD都有已知的分区
+        ```scala
+       def joinScoresWithAddress3(scoreRDD: RDD[(Long, Double)],
+       addressRDD: RDD[(Long, String)]) : RDD[(Long, (Double, String))]= {
+       // If addressRDD has a known partitioner we should use that,
+       // otherwise it has a default hash parttioner, which we can reconstruct by
+       // getting the number of partitions.
+       val addressDataPartitioner = addressRDD.partitioner match {
+       case (Some(p)) => p
+       case (None) => new HashPartitioner(addressRDD.partitions.length)
+       }
+       val bestScoreData = scoreRDD.reduceByKey(addressDataPartitioner,
+       (x, y) => if(x > y) x else y)
+       bestScoreData.join(addressRDD)
+       }
+      ```
+      - 其中一个足够小到内存中可以存下，用广播哈希join
+      ```scala
+      def manualBroadCastHashJoin[K : Ordering : ClassTag, V1 : ClassTag,
+      V2 : ClassTag](bigRDD : RDD[(K, V1)],
+       smallRDD : RDD[(K, V2)])= {
+       val smallRDDLocal: Map[K, V2] = smallRDD.collectAsMap()
+       bigRDD.sparkContext.broadcast(smallRDDLocal)
+       bigRDD.mapPartitions(iter => {
+       iter.flatMap{
+       case (k,v1 ) =>
+       smallRDDLocal.get(k) match {
+       case None => Seq.empty[(K, (V1, V2))]
+       case Some(v2) => Seq((k, (v1, v2)))
+       }
+       }
+       }, preservesPartitioning = true)
+       }
+      //end:coreBroadCast[]
+      }
+      ```
+      - 部分手动广播
+        - 计数键，来看哪个键收益最大
+        - 过滤出量小的键值，手动join
+- SPARK SQL joins
+  - 简介
+    - 降低，或者重排序操作，来使jpin更高效
+    - 但是也放弃了操作分区的功能
+  - dataframe join
 
 
