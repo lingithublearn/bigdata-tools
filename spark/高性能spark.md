@@ -281,6 +281,7 @@ spark on yarn 依赖hdfs,s3,cassandra等文件存储管理系统存储数据，�
   - dataset有强类型检查
 
 # 第四章 joins 连接操作（SQL and Core）
-
+- 简介
+  - 可能需要特殊的性能条件，网络通信，也可能创建超出性能的大数据集和
 
 
