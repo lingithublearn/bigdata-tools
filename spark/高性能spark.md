@@ -1,4 +1,5 @@
 
+
 # 第一章 介绍高性能spark
 - 什么是spark,为什么表现重要
   - spark是一个高性能的，分布式计算系统
@@ -376,4 +377,67 @@ spark on yarn 依赖hdfs,s3,cassandra等文件存储管理系统存储数据，�
     - 使用 Scala的this.type,累加计算用的是第一个累加器
     - 但是可变数据结构，可能导致数据结果不准确
   - 使用更小的数据结构
+    - 使用原始类型，而不是自定义类: 例如少用scala的tuple
+    - 不同类型的转换，一般会导致中间对象的创建
+- 映射分区的迭代转换
+  - 简介
+    - 当一个转换直接使用，并返回一个迭代器，但不经过另一个集合：迭代转换
+  - 什么是Iterator-to-Iterator Transformation
+    - 迭代器只能遍历一次
+    - 迭代器线性执行，一个接着一个。迭代迭代，要求返回的是一个新的迭代器
+  - 空间和时间优势
+    - 可以让spark有选择的将数据转移到磁盘
+    - 一个接着一个，类似微批处理，方便程序判断那些需要溢写到磁盘，而不是整个分区
+- 集操作 set
+  - 原始的RDD 存在重复数值
+- 减少设置开销
+  - 简介
+    - mapPartitions ,用iterator来共用一个函数，来减少配置开销
+    - 在一个action中建立一个连接来存户数据
+  - 分享变量
+    - 广播变量和累加器：在driver / worker 分别被读或写
+  - 广播变量
+    - driver上创建一个变量，分发一个只读副本到每一台机器
+    - 广播一次和每个任务copy一次会带来很大的不同
+    - 不能更新，会存在读差别
+    - 不用可以用unpersist（） 处理
+  - 累加器
+    - 可以对不同类型的数据进行累加，但要重写方法
+    - 本质上是耿总任务度量
+- 重用RDDs
+  - 简介
+    - 持久化，缓存，检查点
+    - 对小数据量，数据直接重算更好
+  - 重用的场景
+    - 迭代计算
+    - 对一个RDD多级执行
+    - checkpoint 可以跨application
+    - 如果重算每个分区代价很高
+  - 决定是否重算，如果代价不够高
+    - 会有内存回收的问题
+    - 保存到磁盘和检查点，有mapreduce的缺点
+    - 测试增加cash，时候加速
+    - GC 和 out-of-memory 时，保存到disk，或者checkpoint
+  - 重用的种类
+    - 持久化和缓存persist and cache
+      - useDisk, useMemory, useOfHeap, deserialized, replication
+    - checkpointing
+      - 外部存储系统
+  - Alluxio (nee Tachyon)
+    - 独立与spark的内存存储系统
+  - Lru caching
+    - Least Recently Used
+    - shuffle文件，可以帮助重算，知道RDD离开管道，才会被完全清理
+  - 嘈杂集群的注意事项
+    - 使用checkPoint
+    - 有FIFO等任务安排制度
+  - 与累加器相互作用
+    - 累加器可能重算时对一个分区累加多次
 
+## 第六章 键值对数据
+- 简介
+  - 有助于并行处理
+  - 可能会导致宽依赖，导致性能下降
+  - driver的内存一处，worker的内存溢出，洗牌失败，分散任务
+  - 方法：更少洗牌，更好的洗牌
+- goldilocks 的例子
