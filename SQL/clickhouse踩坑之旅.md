@@ -147,7 +147,70 @@ SETTINGS index_granularity = 8192
     - 怎么查 
 
 # 8 物化视图
-- 
+- 简介 两种类似的视图：普通视图，物化视图，live视图和window视图
+- nomal 普通视图
+  - 普通视图不存储任何数据。 他们只是在每次访问时从另一个表执行读取。换句话说，普通视图只不过是一个保存的查询。 从视图中读取时，此保存的查询用作FROM子句中的子查询
+  - 语法 ： `CREATE [OR REPLACE] VIEW [IF NOT EXISTS] [db.]table_name [ON CLUSTER cluster_name] AS SELECT ...`
+- materialized 物化视图
+  - 语法 `CREATE MATERIALIZED VIEW [IF NOT EXISTS] [db.]table_name [ON CLUSTER] [TO[db.]name] [ENGINE = engine] [POPULATE] AS SELECT ...`
+  - 实现：当向SELECT中指定的表插入数据时，插入数据的一部分被这个SELECT查询转换，结果插入到视图中
+  - 规则
+    - 创建不带TO [db].[table]的物化视图时，必须指定ENGINE – 用于存储数据的表引擎
+    - 使用TO [db].[table] 创建物化视图时，不得使用POPULATE
+    - ClickHouse 中的物化视图更像是插入触发器。 如果视图查询中有一些聚合，则它仅应用于一批新插入的数据。 对源表现有数据的任何更改（如更新、删除、删除分区等）都不会更改物化视图
+    - 如果指定POPULATE，则在创建视图时将现有表数据插入到视图中
+    - SELECT 查询可以包含DISTINCT、GROUP BY、ORDER BY、LIMIT……请注意，相应的转换是在每个插入数据块上独立执行的。 例如，如果设置了GROUP BY，则在插入期间聚合数据，但仅在插入数据的单个数据包内。 数据不会被进一步聚合。 例外情况是使用独立执行数据聚合的ENGINE，例如SummingMergeTree
+    - 删除视图,使用DROP VIEW. DROP TABLE也适用于视图
+  - SummingMergeTree的配合使用  
+    - 对于join:ClickHouse 仅触发 Join 中最左侧的表。其他表可提供用于转换的数据，但是视图不会对这些表上的插入做出反应。
+  - 自忙时要有24小时窗口，筛选出最大值的记录
+  - 物化视图触发不以时间，聚合函数一定条件下可以满足重算
+  - 
+```sql
+CREATE TABLE download_daily (
+  day Date,
+  userid UInt32,
+  downloads UInt32,
+  total_gb Float64,
+  total_price Float64
+)
+ENGINE = SummingMergeTree
+PARTITION BY toYYYYMM(day) ORDER BY (userid, day)
+
+CREATE MATERIALIZED VIEW download_daily_mv
+TO download_daily AS
+SELECT
+    day AS day, userid AS userid, count() AS downloads,
+    sum(gb) as total_gb, sum(price) as total_price
+FROM (
+    SELECT
+    toDate(when) AS day,
+    userid AS userid,
+    download.bytes / (1024*1024*1024) AS gb,
+    gb * price.price_per_gb AS price
+    FROM download LEFT JOIN price ON download.userid = price.userid
+    )
+GROUP BY userid, day
+```
+
+
+
+
+- windows view【测试功能：目前21版本不满足】
+  - 通过allow_experimental_window_view启用window view以及WATCH语句。输入命令 set allow_experimental_window_view = 1
+  - 语法： `CREATE WINDOW VIEW [IF NOT EXISTS] [db.]table_name [TO [db.]table_name] [INNER ENGINE engine] [ENGINE engine] [WATERMARK strategy] [ALLOWED_LATENESS interval_function] [POPULATE] AS SELECT ... GROUP BY time_window_function`
+  - 规则
+    - Window view可以通过时间窗口聚合数据，并在满足窗口触发条件时自动触发对应窗口计算
+    - Window view通过INNER ENGINE指定内部存储引擎以存储窗口计算中间状态，默认使用AggregatingMergeTree作为内部中间状态存储引擎
+    - 时间窗口函数用于获取窗口的起始和结束时间。Window view需要和时间窗口函数配合使用。【21.3版本没有】
+  - 时间属性
+    - 处理时间为默认时间类型，该模式下window view使用本地机器时间计算窗口数据
+    - 事件时间 是事件真实发生的时间，该时间往往在事件发生时便嵌入数据记录，Window view通过水位线(WATERMARK)启用事件时间处理
+    - 水位线策略
+      - STRICTLY_ASCENDING: 提交观测到的最大时间作为水位线，小于最大观测时间的数据不算迟到。
+      - ASCENDING: 提交观测到的最大时间减1作为水位线。小于或等于最大观测时间的数据不算迟到。
+      - BOUNDED: WATERMARK=INTERVAL. 提交最大观测时间减去固定间隔(INTERVAL)做为水位线。
+  - 怎么验证一个方法从哪个版本开始有
 
 
 # 9 性能

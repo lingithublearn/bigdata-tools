@@ -304,7 +304,7 @@ spark on yarn 依赖hdfs,s3,cassandra等文件存储管理系统存储数据，�
     - 原理：将不同的RDD按照相同的哈希分区计算，保证 同一个键值的数据在同一个分区
     - 避免:如果RDD是共定位的，shuffle可以避免
       - RDD都有已知的分区
-        ```scala
+      ```scala
        def joinScoresWithAddress3(scoreRDD: RDD[(Long, Double)],
        addressRDD: RDD[(Long, String)]) : RDD[(Long, (Double, String))]= {
        // If addressRDD has a known partitioner we should use that,
@@ -441,3 +441,69 @@ spark on yarn 依赖hdfs,s3,cassandra等文件存储管理系统存储数据，�
   - driver的内存一处，worker的内存溢出，洗牌失败，分散任务
   - 方法：更少洗牌，更好的洗牌
 - goldilocks 的例子
+  - 背景：有上万熊猫，每个有上万指标，需要找到每个指标中排序第n1,n2,,n3的值
+  - 方案
+    - 迭代解决 iterative solution
+      - 使用循环遍历每一个指标，对指标排序sort,包装上index zipWithIndex,筛选出需要的排序值
+    - 通过key-value,实现分割flat,并行计算 
+    ```scala
+    dataFrame.rdd.flatMap(
+    row => Range(0, rowLength).map(i => (i, row.getDouble(i)))
+    )
+    ```
+    - PairRDDFunctions and OrderedRDDFunctions
+  - key-value的action操作
+    - 简介
+      - countByKey,会把key带到driver中，容易导致内存溢出
+      - 数据的条数，和每条的大小都会影响是否内存溢出
+  - groupByKey的危险
+    - 简介：伸缩性的问题
+    - glodilocks的例子
+      - 返回的是key,Iterable迭代器
+      - 对小数据量，有很多列，但是很少数据，只用shuffle一次，sort是窄转换，可以在一个executor上完成
+      - 对大数量级别，会在很多节点上失败
+        - 返回的iterator是不可以分割的，会导致读取代价昂贵，节点需要读取几乎所有的shuffled data
+        - 如果一个key有太多数据，会导致操作失败
+        - 解决
+          - 提前聚合
+          - 二次分配，使用返回值不对应一个key的宽转换，可以分区
+  - 选择一个聚合函数
+    - 用聚合操作防止内存溢出
+      - 使用combineByKey,有相同key的数据在被shuffle之前已经合并
+      - combine操作让数据变小
+  - 多RDD操作
+    - Co-Grouping
+      - CoGroupedRDD是join的基本类型
+      - key的类型相同，返回一个key对应一个RDD，每个RDD对应一个Iterable
+      - join多个，不如使用cogroup
+      - 可能内存溢出，如果一个RDD内数据太多到超过一个分区的容量
+  - 分区和key/value数据
+    - 改变分区的方法
+      - repartition/coalse:改变分区数目
+      - partitionBy:根据一个key分区，用一个已知的分区器
+    - 使用spark partitioner 对象
+      - 方法： numPartitions:获取分区数目，getPartition:获取key和分区缩索引的映射
+      - 实现：HashPartitioner,RangePartitioner
+    - Hash Partitioner
+      - 定义：key的哈希值决定子分区的索引
+      - 默认值 `spark.default.parallelism`
+    - Range Partitioning
+      - 定义：将在相同范围的key分配给同一个分区，对每个分区sort,则整体有序
+      - 通过采样确定分区边界
+      - 不平衡的数据，可能导致采样失效，数据倾斜
+      - 既是转化，又是action
+      - 代价比hash高些
+    - 自定义 分区
+      - numPartitions
+      - getPartition
+      - equals
+      - hashcode
+    - 跨转化，保留分区信息
+      - 使用窄转化来保留分区：mapValues
+    - 利用RDD的共定位和共分区
+      - 共定位:物理上在同一个内存
+        - 在cogroup之前call一个action算子，会导致不共定位，产生网络通信消耗
+      - 共分区：分区的key相同
+    - map和分区函数，对键值对函数的字典
+  - OrderedRDDOperations的字典
+  - 
