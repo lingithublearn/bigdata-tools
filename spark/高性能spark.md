@@ -452,58 +452,94 @@ spark on yarn 依赖hdfs,s3,cassandra等文件存储管理系统存储数据，�
     )
     ```
     - PairRDDFunctions and OrderedRDDFunctions
-  - key-value的action操作
-    - 简介
-      - countByKey,会把key带到driver中，容易导致内存溢出
-      - 数据的条数，和每条的大小都会影响是否内存溢出
-  - groupByKey的危险
-    - 简介：伸缩性的问题
-    - glodilocks的例子
-      - 返回的是key,Iterable迭代器
-      - 对小数据量，有很多列，但是很少数据，只用shuffle一次，sort是窄转换，可以在一个executor上完成
-      - 对大数量级别，会在很多节点上失败
-        - 返回的iterator是不可以分割的，会导致读取代价昂贵，节点需要读取几乎所有的shuffled data
-        - 如果一个key有太多数据，会导致操作失败
-        - 解决
-          - 提前聚合
-          - 二次分配，使用返回值不对应一个key的宽转换，可以分区
-  - 选择一个聚合函数
-    - 用聚合操作防止内存溢出
-      - 使用combineByKey,有相同key的数据在被shuffle之前已经合并
-      - combine操作让数据变小
-  - 多RDD操作
-    - Co-Grouping
-      - CoGroupedRDD是join的基本类型
-      - key的类型相同，返回一个key对应一个RDD，每个RDD对应一个Iterable
-      - join多个，不如使用cogroup
-      - 可能内存溢出，如果一个RDD内数据太多到超过一个分区的容量
-  - 分区和key/value数据
-    - 改变分区的方法
-      - repartition/coalse:改变分区数目
-      - partitionBy:根据一个key分区，用一个已知的分区器
-    - 使用spark partitioner 对象
-      - 方法： numPartitions:获取分区数目，getPartition:获取key和分区缩索引的映射
-      - 实现：HashPartitioner,RangePartitioner
-    - Hash Partitioner
-      - 定义：key的哈希值决定子分区的索引
-      - 默认值 `spark.default.parallelism`
-    - Range Partitioning
-      - 定义：将在相同范围的key分配给同一个分区，对每个分区sort,则整体有序
-      - 通过采样确定分区边界
-      - 不平衡的数据，可能导致采样失效，数据倾斜
-      - 既是转化，又是action
-      - 代价比hash高些
-    - 自定义 分区
-      - numPartitions
-      - getPartition
-      - equals
-      - hashcode
-    - 跨转化，保留分区信息
-      - 使用窄转化来保留分区：mapValues
-    - 利用RDD的共定位和共分区
-      - 共定位:物理上在同一个内存
-        - 在cogroup之前call一个action算子，会导致不共定位，产生网络通信消耗
-      - 共分区：分区的key相同
-    - map和分区函数，对键值对函数的字典
-  - OrderedRDDOperations的字典
-  - 
+- key-value的action操作
+  - 简介
+    - countByKey,会把key带到driver中，容易导致内存溢出
+    - 数据的条数，和每条的大小都会影响是否内存溢出
+- groupByKey的危险
+  - 简介：伸缩性的问题
+  - glodilocks的例子
+    - 返回的是key,Iterable迭代器
+    - 对小数据量，有很多列，但是很少数据，只用shuffle一次，sort是窄转换，可以在一个executor上完成
+    - 对大数量级别，会在很多节点上失败
+      - 返回的iterator是不可以分割的，会导致读取代价昂贵，节点需要读取几乎所有的shuffled data
+      - 如果一个key有太多数据，会导致操作失败
+      - 解决
+        - 提前聚合
+        - 二次分配，使用返回值不对应一个key的宽转换，可以分区
+- 选择一个聚合函数
+  - 用聚合操作防止内存溢出
+    - 使用combineByKey,有相同key的数据在被shuffle之前已经合并
+    - combine操作让数据变小
+- 多RDD操作
+  - Co-Grouping
+    - CoGroupedRDD是join的基本类型
+    - key的类型相同，返回一个key对应一个RDD，每个RDD对应一个Iterable
+    - join多个，不如使用cogroup
+    - 可能内存溢出，如果一个RDD内数据太多到超过一个分区的容量
+- 分区和key/value数据
+  - 改变分区的方法
+    - repartition/coalse:改变分区数目
+    - partitionBy:根据一个key分区，用一个已知的分区器
+  - 使用spark partitioner 对象
+    - 方法： numPartitions:获取分区数目，getPartition:获取key和分区缩索引的映射
+    - 实现：HashPartitioner,RangePartitioner
+  - Hash Partitioner
+    - 定义：key的哈希值决定子分区的索引
+    - 默认值 `spark.default.parallelism`
+  - Range Partitioning
+    - 定义：将在相同范围的key分配给同一个分区，对每个分区sort,则整体有序
+    - 通过采样确定分区边界
+    - 不平衡的数据，可能导致采样失效，数据倾斜
+    - 既是转化，又是action
+    - 代价比hash高些
+  - 自定义 分区
+    - numPartitions
+    - getPartition
+    - equals
+    - hashcode
+  - 跨转化，保留分区信息
+    - 使用窄转化来保留分区：mapValues
+  - 利用RDD的共定位和共分区
+    - 共定位:物理上在同一个内存
+      - 在cogroup之前call一个action算子，会导致不共定位，产生网络通信消耗
+    - 共分区：分区的key相同
+  - map和分区函数，对键值对函数的字典
+    - mapValues,faltMapValues,keys,values,sampleByKey,partitionBy
+- OrderedRDDOperations的字典
+  - sortBykey,repartitionAndSortWithPartiton,filterByRange
+  - 用两个key sortByKey
+- 辅助排序和repartitionAndSortWithinPartitions
+  - 简介
+    - 用rangePartitions+mapPartitions比 sortByKey慢
+    - secondary sort,将一些排序工作，在shuffle阶段完成
+  - 用key组和value排序函数，使用repartitionAndSortWithinPartitions
+    - 一种场景：通过key汇聚，每个分区内通过value排序
+    - 类似 groupByKeyAndSortValue，但是spark中可能没有
+  - 如何不按两个排序
+    - 其他方式不能保证正确的结果，如
+    - `indexValuePairs.sortByKey().groupByKey()`
+    - `indexValuePairs.sortByKey.map(_.swap()).sortByKey`
+  - Goldilocks Version 2: Secondary Sort
+    - 用repartitionAndSortWithinPartitions 代替groupByKey+sort
+    - 自定义分区
+    - 每个分区过滤
+    - 组合与一个键关联的元素
+    - 性能
+      - 对任意数据量，比groupByKey好，在shuffle后sort,可以实现迭代转化，和避免一个分区的所有数据存在内存中
+      - 列的数量很多的时候，依然会导致失败
+      - 不是很懂
+  - 不同的方法
+    - 回顾优化手段
+      - 窄转换，可以并行计算
+      - shuffle后可以用窄转换，保留分区本地化
+      - 宽转化，最好用唯一key，避免执行器上数据太多
+      - sortByKey，及那个数据排序推到shuffle阶段的本地机器
+      - 迭代转换，可以避免整个分区加载到内存
+      - 有时shuffle文件可以避免宽转换的重算
+    - 对单元格排序并知道每个分区上每列的元素数量，就可以定位第n个元素
+      - map处理为键值对
+      - 对每一个分区排序并计数
+      - 确定每个分区的排序统计位置
+      - 用排序统计过滤
+    - Goldilocks Version 3: Sort on Cell Values

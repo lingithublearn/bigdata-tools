@@ -1,3 +1,21 @@
+# 第四章 数据定义
+
+## 4.2 如何定义数据表
+
+### 4.2.4 临时表
+- 在普通表的基础上添加temporary 关键词
+- 特性
+  - 生命周期是会话绑定的，所以它只支持Memory表引擎，会话结束，数据表就会被销毁
+  - 临时表不属于任何数据库，所以在它的建表语句中，既没有数据库参数也没有表引擎参数
+  - 临时表的优先级是大于普通表的
+  ```sql
+  CREATE TEMPORARY TABLE [IF NOT EXISTS] table_name ( 
+  name1 [type] [DEFAULT|MATERIALIZED|ALIAS expr], 
+  name2 [type] [DEFAULT|MATERIALIZED|ALIAS expr], )
+  ```
+
+
+
 
 #  第七章 mergeTree系列表引擎
 
