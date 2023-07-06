@@ -465,8 +465,8 @@ spark on yarn 依赖hdfs,s3,cassandra等文件存储管理系统存储数据，�
       - 返回的iterator是不可以分割的，会导致读取代价昂贵，节点需要读取几乎所有的shuffled data
       - 如果一个key有太多数据，会导致操作失败
       - 解决
-        - 提前聚合
-        - 二次分配，使用返回值不对应一个key的宽转换，可以分区
+        - 提前map，减少数据量
+        - secondary sort，使用返回值不对应一个key的宽转换，可以分区
 - 选择一个聚合函数
   - 用聚合操作防止内存溢出
     - 使用combineByKey,有相同key的数据在被shuffle之前已经合并
@@ -522,13 +522,12 @@ spark on yarn 依赖hdfs,s3,cassandra等文件存储管理系统存储数据，�
     - `indexValuePairs.sortByKey.map(_.swap()).sortByKey`
   - Goldilocks Version 2: Secondary Sort
     - 用repartitionAndSortWithinPartitions 代替groupByKey+sort
-    - 自定义分区
-    - 每个分区过滤
-    - 组合与一个键关联的元素
+    - 自定义分区器，key为 (column index, value)
+    - 每个分区过滤，map加上一个虚拟值后的((1,2.0),1),遍历每个分区，找到目标排序值，保留下来
+    - groupSorted:按照Key将所有value汇聚，使用了列表的模式匹配::
     - 性能
       - 对任意数据量，比groupByKey好，在shuffle后sort,可以实现迭代转化，和避免一个分区的所有数据存在内存中
       - 列的数量很多的时候，依然会导致失败
-      - 不是很懂
   - 不同的方法
     - 回顾优化手段
       - 窄转换，可以并行计算
@@ -538,8 +537,67 @@ spark on yarn 依赖hdfs,s3,cassandra等文件存储管理系统存储数据，�
       - 迭代转换，可以避免整个分区加载到内存
       - 有时shuffle文件可以避免宽转换的重算
     - 对单元格排序并知道每个分区上每列的元素数量，就可以定位第n个元素
-      - map处理为键值对
-      - 对每一个分区排序并计数
-      - 确定每个分区的排序统计位置
-      - 用排序统计过滤
+      - map处理为键值对(cell value, index)
+      - 用sortByKey排序，
+      - 用mapPartitionsWithIndex，计数计算每个分区，每一列的元素数目，返回[(0, [2, 1, 1]), (1, [0, 1, 1])]，收集到driver，
+      - 计算目标排序的定位: (分区index，[(列index,排序值),..])
+      - 用mapPartitions过滤出目标排序,返回 (columnIndex, rank statistic)键值对
     - Goldilocks Version 3: Sort on Cell Values
+      - 可读性糟糕，但是不会有内存报错，速度比其他方法快一个数量级
+      - 最后两个mapPartitions涉及减少数据，可以用迭代转化实现
+    ```scala
+     def findRankStatistics(dataFrame: DataFrame, targetRanks: List[Long]):
+     Map[Int, Iterable[Double]] = {
+     val valueColumnPairs: RDD[(Double, Int)] = getValueColumnPairs(dataFrame)
+     val sortedValueColumnPairs = valueColumnPairs.sortByKey()
+     sortedValueColumnPairs.persist(StorageLevel.MEMORY_AND_DISK)
+    
+     val numOfColumns = dataFrame.schema.length
+     val partitionColumnsFreq = getColumnsFreqPerPartition(sortedValueColumnPairs, numOfColumns)
+    
+     val ranksLocations = getRanksLocationsWithinEachPart(targetRanks, partitionColumnsFreq, numOfColumns)
+    
+     val targetRanksValues = findTargetRanksIteratively(sortedValueColumnPairs, ranksLocations)
+     targetRanksValues.groupByKey().collectAsMap()
+     }
+    ```
+- 滞后检测和倾斜数据
+  - 简介
+    - 滞后原因：没正确分配资源，数据没平均分区
+    - 检查：web UI, 有些分区用时太长，重试多次
+    - 解决：用其他作为key,增加随机噪声给key，用map减少/联合/去重在shuffle之前
+    - sortBykey也可能造成数据倾斜
+  - 例子
+    - 0值的存在，可能导致数据倾斜
+  - Goldilocks Version 4： 每个分区去重
+    - 在每个分区聚合成 ((cell value, column index), count)
+      - 使用hashMap,最后转化成Iterator,内存效率更高
+    - 排序并找到排序位置
+- Goldilocks 后期分析
+  - 0： 迭代循环访问，分布式排序，只有一个stage,代价昂贵
+  - 1：groupByKey: 将同样的key shuffle到同一个分区，在每个分组中使用mapPartitions进行sort
+  - 2: Secondary Sort: 用repartitionAndSortWithinPartitions，将sort放在shuffle阶段
+  - 3： 对所有数据cell value sort: 用值排序，用一系列窄转换来收集结果，新的排序键比每个分组的重复值更少
+  - 4： 每个分区去重
+  - 数据决定性能的因素
+    - 原始数据的条数
+    - 计算度量的分组数
+    - 每个组中重复数目的比例
+  - 少量数据意味着数据要小于所有executor的计算内存
+  - 对单一组，0更好
+  - 对很多组，2表现好
+  - 组不多的时候，数据量大时候，比较少重复时候，3表现好
+  - 4，如果很少重复，容易hash map内存溢出
+  - 1因为问题，表现都不好
+- 结论
+  - 内存溢出和groupByKey有关，没有减少空间的使用
+  - 减少shullfe:用聪明的分区器，用窄转换保存分区信息，用join的共位置
+  - 数据倾斜，大量重复数据；会减慢shuffle,内存问题
+  - 高性能的方法，往往需要大改
+
+## 第七章 跨越scala
+- 简介
+  - 如何用其他语言高效的完成spark工作
+  - 不同的语言性能不同，什么影响了
+  - 有方式用JVM以外
+- JVM中跨越Scala
