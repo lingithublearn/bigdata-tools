@@ -601,3 +601,53 @@ spark on yarn 依赖hdfs,s3,cassandra等文件存储管理系统存储数据，�
   - 不同的语言性能不同，什么影响了
   - 有方式用JVM以外
 - JVM中跨越Scala
+  - 其他语言使用JVM
+    - 可以避免复制数据
+    - 类型标签，隐式类型转换
+    - 很多其他语言，是调用的java api
+    - Java api 需要明确类型，mapToDouble 返回的也是明确的RDD
+    - java 一般将rdd当作参数，加上类型标签；意味着可以获得底层的rdd
+    - 通用类型标签
+- 超越scala和JVM
+  - 简介
+    - 数据从JVM复制到目标语言，会有比较大的花销
+  - PySpark 
+    - 数据复制后，jVM不能直接解析，需要再序列化
+    - 链式，减少python解释器的开销
+  - SparkR
+- 从spark调用其他语言
+  - 使用pipe和friends
+  - JNI
+  - JNA
+  - GPU
+- 未来
+  - 标准化
+
+## 第八章 测试和验证
+- 单元测试
+  - 一般性：sparkContext
+  - 代码的可测试性：需不需要spark上下文
+  - 常规spark作业:测试逻辑，用上下文，输入
+  - stream流式
+  - mocking rdds
+    - 帮助更快的跑测试
+  - 测试dataframes
+    - 判断测试结果=目标结果
+- 获取测试数据
+  - 最后的是生产数据的采样
+  - MLlib生产定制化分布式随机数
+  - 生产大数据集
+  - 采样
+- 用scalacheck 检查属性
+  - 计算RDD的区别：顺序和相等，考虑误差
+- 集成测试
+  - 选择环境
+    - 本地模式
+    - docker
+    - yarn：yarn MiniCluster
+- 验证性能
+  - 计数器
+    - 获得很多指标，使用sparkListener
+  - 验证性能的项目
+- job 验证
+  - 累加器
