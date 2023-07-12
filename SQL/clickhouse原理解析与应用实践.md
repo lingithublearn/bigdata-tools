@@ -32,6 +32,57 @@
 - 不适用：不支持事务，不擅长按照行粒度查询，不擅长按行删除数据
 
 # 第二章 clickhouse 架构概述
+- 核心特性
+  - 完备的DBMS功能（database management system数据库管理系统）
+    - DDL数据定义语言 ,DML数据操作语言 ,权限控制 ,数据备份和恢复 ,分布式管理
+  - 列式存储与数据压缩
+    - 列式存储。对数据压缩的友好性，数据中重复想越多，压缩率越高，减少数据扫描的数量，只要选定的列
+    - 降低IO和存储的压力，支持向量化执行
+  - 向量化执行引擎
+    - 寄存器硬件层面的特性，为性能带来指数级的提升。
+    - 消除程序中循环的优化，多线程执行，在cpu寄存器层面实现数据的并行操作
+    - cpu的SIMD指令，单条指令操作多条数据
+    - 存储离cpu越近，访问速度越快
+    - 对比传统的火山模型（volcano/pipeline model）:一次拉取一条数据，指令解释开销
+    - 物化模型：一次处理全部数据，容易oom
+    - 向量化/批处理模型 vectorized/batch model
+  - 关系模型与SQL查询
+    - 星型模型，雪花模型，宽表模型
+  - 多样化的表引擎
+  - 多线程和分布式
+    - 线程级并行，由更高层次的软件层控制
+    - 在数据存取方柏霓，支持分区，也支持分片
+  - 多主架构：Multi-Master
+  - 在线查询：对查询快速响应，无需预处理加工
+  - 数据分片和分布式查询：
+    - 本地表和分布式表的概念
+- 架构设计
+  - column与field
+    - column：列对象，接口IColumn，实现ColumnString，..
+    - Field: 单值对象，聚合的设计模式，Null,Uin64等数据类型和相应的处理逻辑
+  - DataType
+    - 负责数据的序列化和反序列化，IDataType使用了泛化的设计模式
+    - 数据的读取由Column或Field对象获取
+  - Block与Block流
+    - Block对象：数据对象，数据类型，列名称组成的三元组。Column,DataType,列名称字符串
+    - IBlockInputStream,IBlockOutputStream
+  - table
+    - IStorage接口指代数据表，定义了DDL和read和write方法
+    - 根据AST查询语句的只是要求，返回指定列的原始数据
+  - Parser与Interpreter
+    - parser分析器负责创建AST对象
+    - Interpreter解释器负责解释AST，并进一步拆功能键查询的执行管道
+  - Functions与Aggregate Functions
+    - 采用向量化的方式直接作用与一整列数据
+    - 聚合函数有状态，支持序列化与反序列化，能够在分布式节点之间进行传输，实现增量计算
+  - Cluster与Replication
+    - 集群由分片（shard）与副本（Replica)
+- 为什么快：自下向上设计
+  - 在硬件上设计：在内存中group by，并且使用hashTable装载数据
+  - 算法在前：选用性能最好的算法
+  - 特定场景，特殊优化：更对不同场景，选用不同算法
+
+# 第三章 安装和部署
 
 
 # 第四章 数据定义

@@ -51,11 +51,17 @@ SETTINGS index_granularity = 8192
       - chown clickhouse:clickhouse /clickhouse/flags/force_drop_table
       - chmod 666 /clickhouse/flags/force_drop_table
       - 执行drop语句，执行完后，这个文件会被删除
+      - 其他方法，可以按照分区删除数据
   - 改表名： rename tabel tbName to tbName on cluster cluster
     - 结果是新的表的zookeeper里面的表元数据存储位置是没有改变的
     - 复制表需要在zookeeper上新建一个路径来保存，默认的引擎室atomic，需要480s以后才能重建表
     - 影响的应该是，新建表的时候，不能再使用这个路径了
   - 视图表不用修改，只是查询的作用
+  - 原表rename
+  - create新表，注意locate+01区别
+  - insert into table newtb select * from oldtb 不能on cluster cluster/每个节点执行一次，不用分布式表，跨节点会有带宽限制
+  - 删除旧表 大数据量的时候：先删掉数据truncate,drop 分区，或者强制删除，
+  - 删掉分布式表，重建
 
 # 3. 分布式ddl，节点返回失败
 - 报错
