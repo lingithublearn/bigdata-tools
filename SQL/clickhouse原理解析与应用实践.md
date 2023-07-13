@@ -86,20 +86,264 @@
 
 
 # 第四章 数据定义
+## 4.1 数据类型
+- 基础类型
+  - 数值类型：整数Int8/16/32/64，UInt,浮点数Float32/64,正无穷inf，非数字nan，定点数Decimal32/64/128/(P,S)
+  - 字符串类型：String,FixedString：固定长度，UUID：32为位，主键类型
+  - 时间类型：DateTime,DateTime64,Date
+    - 毫秒，微秒只能借助Uint实现
+- 复合类型
+  - Array
+    - `select array(1,2)` or `[1,2]`
+    - 同一个数组内可以包含多种类型，但各个类型之间必须兼容
+    - 定义表字段时，数据需要指定元素类型
+  - Tuple
+    - 元素之间可以不同数据类型，不兼容
+    - `tuple(1,'a',now())` or `(1,2.0,null,now())`
+    - 定义表字段时，要指定类型
+    - 写入的时候进行类型检查 `Tuple_TEST values (('abc',123))`
+  - Enum
+    - `c1 Enum8('ready'=1,'start'=2)`
+    - 唯一性
+  - Nested：嵌套类型
+    - 表字段嵌套层级只支持一级
+    - 嵌套类型本质是一种多维数组
+    - 同一行内每个数组的字段的长度必须相等
+- 特殊类型
+  - nullable: 和基础类型搭配使用
+  - Domain:域名类型，IPv4,IPv6
+    - 便捷性：格式检查；性能更好
+    -不支持隐式类型转换：IPv4NumToString
 
-## 4.2 如何定义数据表
+## 4.2 定义数据表
+- 数据库
+  - `CREATE DATABASE IF NOT EXISTS db_name [ENGINE = engine]`
+  - Ordinary默认引擎
+  - `DROP DATABASE [IF EXISTS] db_name`
+- 数据表
+  - 常规定义法
+```sql
+--常规定义法
+CREATE TABLE [IF NOT EXISTS] [db_name.]table_name ( 
+    name1 [type] [DEFAULT|MATERIALIZED|ALIAS expr], 
+    name2 [type] [DEFAULT|MATERIALIZED|ALIAS expr], 
+    省略… 
+    ) ENGINE = engine
+--复制
+CREATE TABLE [IF NOT EXISTS] [db_name1.]table_name AS [db_name2.] table_name2 [ENGINE = engine]
+--支持在不同数据库之间复制
 
-### 4.2.4 临时表
-- 在普通表的基础上添加temporary 关键词
-- 特性
-  - 生命周期是会话绑定的，所以它只支持Memory表引擎，会话结束，数据表就会被销毁
-  - 临时表不属于任何数据库，所以在它的建表语句中，既没有数据库参数也没有表引擎参数
-  - 临时表的优先级是大于普通表的
+--select子句
+CREATE TABLE [IF NOT EXISTS] [db_name.]table_name ENGINE = engine AS SELECT …
+
+--DESC查询可以返回表的定义结构
+
+--删除
+DROP TABLE [IF EXISTS] [db_name.]table_name
+```
+- 默认值表达式: default,meterialized,alias
   ```sql
-  CREATE TEMPORARY TABLE [IF NOT EXISTS] table_name ( 
-  name1 [type] [DEFAULT|MATERIALIZED|ALIAS expr], 
-  name2 [type] [DEFAULT|MATERIALIZED|ALIAS expr], )
+  CREATE TABLE dfv_v1 ( 
+      id String, 
+      c1 DEFAULT 1000, 
+      c2 String DEFAULT c1 
+  ) ENGINE = TinyLog
   ```
+  - 数据写入：只有default类型的字段可以出现在insert语句中，而MATERIALIZED和ALIAS都不能被显式赋值，它们只能依靠计算取值
+  - 数据查询：MATERIALIZED和ALIAS类型的字段不会出现在SELECT *查询的返回结果集中
+  - 数据存储：只有DEFAULT和MATERIALIZED类型的字段才支持持久化
+  - 修改动作不会印象数据表内先前已经存在的数据
+
+- 临时表 
+  - 在普通表的基础上添加temporary 关键词
+  - 特性
+    - 生命周期是会话session绑定的，所以它只支持Memory表引擎，会话结束，数据表就会被销毁
+    - 临时表不属于任何数据库，所以在它的建表语句中，既没有数据库参数也没有表引擎参数
+    - 临时表的优先级是大于普通表的
+    ```sql
+    CREATE TEMPORARY TABLE [IF NOT EXISTS] table_name ( 
+    name1 [type] [DEFAULT|MATERIALIZED|ALIAS expr], 
+    name2 [type] [DEFAULT|MATERIALIZED|ALIAS expr], )
+    ```
+- 分区表
+  - 提高查询性能，数据的纵向切分
+  - 只有合并书MergeTree家族的表引擎才支持数据分区
+  ```sql
+  CREATE TABLE partition_v1 ( 
+  ID String, 
+  URL String, 
+  EventTime Date 
+  ) ENGINE = MergeTree() 
+  PARTITION BY toYYYYMM(EventTime) 
+  ORDER BY ID
+  ```
+- 视图
+  - 普通：只是一层简单的查询代理:`CREATE VIEW [IF NOT EXISTS] [db_name.]view_name AS SELECT ...`
+  - 物化视图: 有独立的村塾，数据保存形式有表引擎决定
+  ```sql
+  CREATE [MATERIALIZED] VIEW [IF NOT EXISTS] [db.]table_name [TO[db.]name] [ENGINE = engine] [POPULATE] AS SELECT
+  ```
+    - 源表写入新数据，物化视图也会同步更新
+    - populate决定了初始化测录入，已存在的数据一并导入
+    - 不支持同步删除
+    - 删表 `drop table view_name`'
+
+## 4.3 数据表的基本操作
+目前只有MergeTree、Merge和Distributed这三类表引擎支持ALTER查询
+- 追加新字段
+```sql
+ALTER TABLE tb_name ADD COLUMN [IF NOT EXISTS] name [type] [default_expr] [AFTER name_after]
+
+ALTER TABLE testcol_v1 ADD COLUMN OS String DEFAULT 'mac'
+
+ALTER TABLE testcol_v1 ADD COLUMN IP String AFTER ID
+```
+- 修改数据类型
+```sql
+ALTER TABLE tb_name MODIFY COLUMN [IF EXISTS] name [type] [default_expr]
+--类型需要兼容
+ALTER TABLE testcol_v1 MODIFY COLUMN IP IPv4
+```
+- 修改备注 comment
+- 删除已有字段 drop
+- 移动数据表 `RENAME TABLE [db_name11.]tb_name11 TO [db_name12.]tb_name12` 只能单节点
+- 清空数据表 `TRUNCATE TABLE [IF EXISTS] [db_name.]tb_name`
+
+## 4.4 数据分区的基本操作
+- 查询分区信息 `SELECT partition_id,name,table,database FROM system.parts WHERE table = 'partition_v2'`
+- 删除指定分区 `ALTER TABLE tb_name DROP PARTITION partition_expr`
+- 复制分区数据 `ALTER TABLE B REPLACE PARTITION partition_expr FROM A`
+  - 有相同的分区键，表结构完全相同
+- 重置分区数据: 初始值 `ALTER TABLE tb_name CLEAR COLUMN column_name IN PARTITION partition_expr`
+- 卸载和装载分区:分区数据迁移和备份 `ALTER TABLE tb_name DETACH PARTITION partition_expr`, `ALTER TABLE tb_name ATTACH PARTITION partition_expr`
+- 备份和还原分区，freeze和fetch
+
+## 4.5 分布式DDL执行
+- DDL语句支持分布式执行，`on cluster cluster`
+
+## 4.6 数据的写入
+```sql
+INSERT INTO [db.]table [(c1, c2, c3…)] VALUES (v11, v12, v13…), (v21, v22, v23…), ...
+-- ，c1、c2、c3是列字段声明，可省略
+-- 在使用VALUES格式的语法写入数据时，支持加入表达式或函数
+
+INSERT INTO [db.]table [(c1, c2, c3…)] FORMAT format_name data_set
+INSERT INTO partition_v2 FORMAT CSV \ 
+    'A0017','www.nauu.com', '2019-10-01' \ 
+    'A0018','www.nauu.com', '2019-10-01'
+
+INSERT INTO [db.]table [(c1, c2, c3…)] SELECT ...
+```
+- 表达式和函数会带来额外的性能开销
+- 数据操作式面向Block数据块的，每个数据块最多可以写入1048576行数据（由max_insert_block_size参数控制）具有原子性
+
+## 4.7 数据的删除与修改
+- delete和update能力，是mutation查询
+- 更适合批量数据的修改和删除
+- 不支持事务，一旦提交，就会对现有数据产生影响，不能回滚
+- 异步的后台过程，具体执行进度，查询过system.mutations系统表
+- is_done =1 表示执行完毕
+- 等到mergertree引擎下一次合并动作出发时候，非激活目录才会物理上被删除
+- update不能修改分区键和主键
+
+# 第五章 数据字典
+
+用键值和属性映射的形式定义数据，字段中的数据会主动或被动加载到内存，并支持动态更新。适合常量，避免给不必要的join(如根据ID转名称)
+
+- 内置字典
+  - 只有Yandex.Metrica字典，但不开放。只是提供了字典的定义机制和取数函数
+  - 配置说明
+    - 默认禁止，开启将config.xml文件中path_to_regions_hierarchy_file和path_to_regions_names_files
+    - path_to_regions_hierarchy_file等同于区域数据的主表：由1个regions_hierarchy.txt和多个regions_hierarchy_[name].txt区域层次的数据文件共同组成
+    - path_to_regions_names_files等同于区域数据的维度表，记录了与区域ID对应的区域名称
+  - 使用内置字典
+    - `mkdir /opt/geo`
+    - 复制数据到目录下
+    - 打开配置
+    - `SELECT regionToName(toUInt32(20009))`
+- 外部扩展字典
+  - 以插件形式注册
+  - 准备字典数据：csv格式，用于flat,hashed,cache,complex_key_hashed,complex_key_cache,range_hashed,ip_trie
+  - 扩展字典配置文件的元素组成
+    - 由config.xml文件中的dictionaries_config 指定，默认识别/etc/clickhouse-server目录下所有以_dictionary.xml结尾的配置
+    ```xml
+    <?xml version="1.0"?> 
+    <dictionaries> 
+      <dictionary>
+        <name>dict_name</name>
+        <structure><!—字典的数据结构 --></structure> 
+        <layout> <!—在内存中的数据格式类型 --> </layout> 
+        <source> <!—数据源配置 --> </source>
+        <lifetime> <!—字典的自动更新频率 --> </lifetime>
+       </dictionary> 
+    </dictionaries>
+    ```
+  - 数据结构：structure
+    - 由key 和属性attribute 组成 `<structure> <!— <id> 或 <key> --> <id><!—Key属性--> </id> <attribute> <!—字段属性--> </attribute> ... </structure>`
+    - key：至少一个
+      - 数值型：支持flat,hashed、range_hashed和cache类型的字典 `<id><!—名称自定义--> <name>Id</name> </id>`
+      - 复合型：使用tuple 定义 仅支持complex_key_hashed、complex_key_cache和ip_trie类型的字典`<key><attribute> <name>field1</name> <type>String</type> </attribute> <attribute> <name>field2</name> <type>UInt64</type> </attribute> 省略… </key>`
+    - attribute
+      ```
+      <attribute> 
+      <name>Name</name> 
+      <type>DataType</type> 
+      <!—空字符串--> 
+      <null_value></null_value> 
+      <expression>generateUUIDv4()</expression> 
+      <hierarchical>true</hierarchical> 
+      <injective>true</injective> 
+      <is_object_id>true</is_object_id> 
+      </attribute>
+      ```
+  - 扩展字典的类型
+    - flat: 性能最好，只是用Uint数值型key，内存中用数组保存，最多500000行数据
+      - 检查 ` SELECT name, type, key, attribute.names, attribute.types FROM system.dictionaries`
+    - hashed ；Uint64数值型key,内存中使用散列结构保存，没有存储上限制
+    - range_hashed: 增加了指定时间区间的特性，以散列结构存储并按照时间排序，用range_min和range_max元素指定
+    - cache: Uintkey,内存中用固定长度的向量数组保存/cells,由 size_in_cells指定，必须是2的整数被
+      - 不会一次将所有数据载入内存，性能不稳定，取决与缓存的命中率
+      - 使用本地数据做数据源，必须用executable形式
+    - complex_key_hashed: 复合型key
+    - complex_key_cache:
+    - ip_trie: 复合型key,指定单个String类型字段，用于指代IP前缀，内存中用trie树结构保存
+  - 数据源
+    - 文件类型
+      - 本地文件：path用绝对路径，用file定义
+      - 可执行文件：command 用cat 访问绝对路径，使用exectable定义
+      - 远程文件：用http元素，url,相当于post请求
+    - 数据库类型
+      - mysql
+      - clickhouse:TinyLog
+      - MongoDB
+    - 其他类型
+  - 数据更新策略：lifetime,min,max
+    - 在数据更新的过程中，旧版本的字典将持续提供服务,不支持增量更新
+    - 当min和max都是0的时候，将禁用字典更新
+  - 基本操作
+    - 元数据查询：`SELECT name, type, key, attribute.names, attribute.types, source FROM system.dictionaries`
+    - 数据查询 `SELECT dictGet('test_flat_dict','name',toUInt64(1))`, `SELECT dictGet('test_ip_trie_dict', 'asn', tuple(IPv4StringToNum('82.118.230.0')))`
+    - 字典表
+    ```sql
+    CREATE TABLE tb_test_flat_dict ( 
+    id UInt64, 
+    code String, 
+    name String 
+    ) ENGINE = Dictionary(test_flat_dict);
+    ```
+    - 使用DDL查询创建
+    ```sql
+    CREATE DICTIONARY test_dict( 
+    id UInt64, 
+    value String 
+    )PRIMARY KEY id 
+    LAYOUT(FLAT()) 
+    SOURCE(FILE(PATH '/usr/bin/cat' FORMAT TabSeparated)) 
+    LIFETIME(1)
+    ```
+
+## 第六章 MergeTree 原理解析
+
 
 
 
