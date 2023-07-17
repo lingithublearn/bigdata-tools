@@ -343,12 +343,162 @@ INSERT INTO [db.]table [(c1, c2, c3…)] SELECT ...
     ```
 
 ## 第六章 MergeTree 原理解析
+只有合并树表引擎才支持主键索引，数据分区，数据副本和数据采样的特性，支持alter相关操作
 
+- mergertree的创建方式与存储结构
+  - 简介： 以数据片段的方式写入磁盘，通过后台线程，定期合并数据片段，数据片段往复合并
+  - 创建方式
+    ```sql
+    CREATE TABLE [IF NOT EXISTS] [db_name.]table_name (
+     name1 [type] [DEFAULT|MATERIALIZED|ALIAS expr],
+     name2 [type] [DEFAULT|MATERIALIZED|ALIAS expr],
+     省略... 
+    ) ENGINE = MergeTree() 
+    [PARTITION BY expr] 
+    [ORDER BY expr] 
+    [PRIMARY KEY expr] 
+    [SAMPLE BY expr] 
+    [SETTINGS name=value, 省略...]
+    ```
+    - partition by：分区键，支持单个列字段，元组，列表达式
+    - order by: 排序键，默认主键与排序相同，支持单个列字段，元组
+    - primary key:主键，生成一级索引。主键允许重复数据
+    - sample by：抽样表达式，用什么标准进行采样
+    - settings: index_granularity表示索引的粒度，默认位8192
+    - index_granularity_bytes：数据的体量大小，默认为10M(10×1024×1024)，设置为0表示不启动自适应功能，新版本有了自适应
+      间隔大小的特性
+    - enable_mixed_granularity_parts：是否开启自适应索引间隔的功能，默认开启
+    - merge_with_ttl_timeout
+    - storage_policy：多路径的存储策略
+  - 存储结构
+    ![](../jpg/img.png)
+    - 3个层级：数据表目录，分区目录，个分区下的具体数据文件
+      - partition：分区目录，余下各类数据文件
+      - checksums.txt：校验文件，保存了为文件是size大小和哈希值，用于校验文件的完整性和正确性
+      - columns.txt：列信息文件，明文
+      - count.txt：计数文件，明文，记录当前分区目录下数据的总行数
+      - primary.idx:一级索引，存放稀疏索引
+      - [Column].bin:数据文件，压缩格式存储，默认位LZ4压缩格式
+      - [Column].mrk：列字段标记文件，保存了.bin文件中数据的偏移量信息，和稀疏索引对其，和.bin文件一一对应
+      - [Column].mrk2:自适应大小的索引间隔，用他命名
+      - partition.dat与minmax_[Column].idx：分区键，前者保存当前分区下分区表达式最终生成的值，后者记录当前分区下分区字段对应原始数据的最小和最大值
+      - skp_idx_[Column].idx与skp_idx_[Column].mrk：二级索引，跳数索引，
+- 数据分区
+  - 分区规则
+    - 不指定，默认取名all,所有数据写入
+    - 整型：用字符形式输出
+    - 日期类型：用YYYYMMDD格式化后的字符形式
+    - 其他类型：128Hash算法取值
+    - 多个分区字段，用其上规则生成，多个ID之间用 '-'拼接
+  - 命名规则
+    - `PartitionID_MinBlockNum_MaxBlockNum_Level`
+    - partition id
+    - MinBlockNum和MaxBlockNum:最小数据块编号与最大数据块编号
+    - level:合并的层级，合并过的次数，初始值为0
+  - 分区目录的合并过程
+    - 每一批数据的写入，会生成一批新的分区目录，在写入后的10-15分钟后，会通过后台任务合并分区目录，旧分区目录默认8分钟后删除
+    ![](../jpg/img_2.png)
+    - BlockNum是全局自增的
+    - 旧的分区目录不再是激活状态，active=0
+- 一级索引
+  - 主键定义后，会依据index_granularity间隔，生成一级索引，保存到primary.idx文件
+  - 稀疏索引
+    ![](../jpg/img_1.png)
+    - 稠密索引，每一行对应一行具体数据记录，稀疏索引中，每一行对应一段
+    - 理解稀疏索引类似分页
+  - 索引粒度
+    - 一级索引和数据标记的间隔粒度相同，数据文件.bin也会依照间隔粒度生成压缩数据块
+  - 索引生成规则
+    ![](../jpg/img_3.png)![](../jpg/img_4.png)
+    - 索引值前后相连，按照主键字段顺序紧密排列一起
+    - 组合索引
+  - 索引的查询过程
+    - markRange数据区间，索引间隔里的具体数据区间
+    - 索引查询：数值区间的交集判断，一个是基于主键的查询条件转换而来的条件区间，一个是markRange的数值区间
+    - 步骤
+      - 生成查询条件去区间
+      - 递归交集判断，从最大的区间开始
+      - 合并markRange区间
+      ![](../jpg/img_5.png)
+- 二级索引
+  - 跳数索引，由数据的聚合信息构建而成。根据索引类型不同，聚合信息的内容也不同，默认是关闭的 
+  - 需要在create语句内定义，支持元组和表达式
+  - `INDEX index_name expr TYPE index_type(...) GRANULARITY granularity`
+  - granularity与index_granularity的关系
+    - index_granularity定义了数据的粒度
+    - granularity定义了聚合信息汇总的粒度granularity定义了一行跳数索引能够跳过多少个index_granularity区间的数据
+    ![](../jpg/img_6.png)
+  - 跳数索引的类型
+    - minmax,set,ngrambf_v1,tokenbg_v1
+    - 一张数据表支持同时申明多个跳数索引
+    - minmax:索引记录了一段数据内的最小和最大极值
+    - set: 直接记录了声明字段或表达式的取值（唯一)
+    - ngrambf_v1: 索引记录的是数据短语的布隆表过滤器，只支持String和FixedString数据类型
+    - tokenbf_v1：tokenbf_v1索引是ngrambf_v1的变种.。tokenbf_v1会自动按照非字符的、数字的字符串分割token
+- 数据存储
+  - 各列独立存储
+    - 数据事先依照order by的声明排序，最后用压缩数据块的形式被组织并写入.bin文件中
+    - 压缩数据块
+      - 头信息：压缩算法类型，压缩后的数据大小，压缩前的数据大小
+      - 压缩数据：
+      ![](../jpg/img_7.png)
+      - 一个.bin文件是由1个至多个压缩数据块组成的，多个压缩数据块之间，按照写入顺序首位相接
+      - 将读取粒度降低到压缩数据块级别，缩小数据读取范围
+- 数据标记
+  - 生成规则
+    ![](../jpg/img_8.png)
+    - 一个元组：编号（压缩数据块的起始偏移量，为压缩数据的起始偏移量）
+    - 表示一个片段的数据，不能常驻内训，使用LRU缓存策略
+  - 工作方式
+    - 读取压缩数据块：使用标记文件的偏移量，定位加载压缩数据块
+    - 读取数据：用索引间隔加载特定的一小段，保存解压数据块中的偏移量
+    ![](../jpg/img_9.png)
+- 总结
+  - 写入过程
+    - 每一批数据的写入，都会生成一个新的分区目录。在后续的某一时刻，属于相同分区的目录会依照规则合并到一起；接着，按照index_granularity索引粒度，会分别生成primary.idx一级索引
+  - 查询过程
+    - 依次借助分区索引、一级索引和二级索引，将数据扫描范围缩至最小。然后再借助数据标记，将需要解压与计算的数据范围缩至最小
+  - 数据标记和压缩数据块的对应关系
+    - 多对一
+    - 一对一
+    - 一对多
 
 
 
 
 #  第七章 mergeTree系列表引擎
+
+## 7.1 MergeTree
+提供了数据分区，一级索引，二级索引等功能
+- 数据TTL: 数据存活时间
+  - 表级别和列级别，以先到期的为主
+  - 依托某个datatime或date字段，对时间的INTERVAL操作来表示过期时间
+    - 列级别，表级别
+    - 运行机理：
+      - 以分区为单位生成ttl.txt
+      - 用json保存，columns,table,min,max
+      - 合并分区时，出发TTL过期数据的逻辑，贪婪，合并次数多的，maxBlockNum大的
+    - 设置
+      - TTL默认的合并频率由MergeTree的merge_with_ttl_timeout参数控制，默认86400秒
+      - 也可以使用optimize命令强制触发合并 `optimize TABLE table_name,optimize TABLE table_name FINAL`
+      - 控制全局TTL合并任务的启停 `SYSTEM STOP/START TTL MERGES`
+- 多路径存储策略
+  - 自定义存储策略，以数据分区为最小移动单元，将分区目录写入多块磁盘目录
+  - 默认策略：自动保存到config.xml中path指定的路径下
+  - JBOD策略：所产生的新分区会轮询写入各个磁盘
+  - HOT/COLD策略：适合不同类型的磁盘
+  - 配置
+    - config.xml,policy
+    - 需要重启clickhouse server
+    - system.disks看磁盘配置，system.storage_policies看存储策略
+
+## 7.2 ReplacingMergeTree
+- 为了数据去重设计的
+- order by是去重的关键
+- 以分区为单位删除重复数据的
+- 版本号的用法：去重时，按照版本号保留最长的
+- 默认，保留最后一个
+
 
 ## 7.3 SummingMergeTree
 - 场景
@@ -420,3 +570,89 @@ AS SELECT
 FROM agg_table_basic 
 GROUP BY id, city
 ```
+
+## 7.5 CollapsingMergeTree
+- 以增代删的思路，支持行级数据修改和删除的表引擎。定义一个sign标记位字段，记录数据行的状态，折叠合并树
+```sql
+CREATE TABLE collpase_table(
+    id String, 
+    code Int32, 
+    create_time DateTime, 
+    sign Int8
+)ENGINE = CollapsingMergeTree(sign)
+PARTITION BY toYYYYMM(create_time)
+ORDER BY id
+```
+- 注意
+  - 折叠数据在分区合并时才体现
+    - 强制合并
+    - having sum(sign) >0
+  - 只有相同分区内的数据被折叠
+  - 对写入的顺序要求严格，对多线程时容易出问题
+
+
+## 7.6 VersionedCollapsingMergeTree
+对数据的写入顺序没有要求
+```sql
+CREATE TABLE collpase_table(
+    id String, 
+    code Int32, 
+    create_time DateTime, 
+    sign Int8,
+    ver UInt8
+)ENGINE = CollapsingMergeTree(sign,ver)
+PARTITION BY toYYYYMM(create_time)
+ORDER BY id
+```
+- 自动将ver加入到order by的末端，这得处理时，会回到正确的顺序
+
+
+## 7.7 关系
+- 继承关系
+  - mergeTree派生出其他的
+  - 组合关系：ReplicatedMergeTree
+    - 分布式协同的能力，记住zookeeper的消息日志广播功能，实现副本实例之间的数据同步功能
+
+# 第八章 其他常见表引擎
+- 外部存储类型：从其他存储系统读取数据，只负责元数据管理和数据查询
+  - HDFS
+    - 在HDFS上给clickhouse用户授权
+    - 表定义 `ENGINE = HDFS(hdfs_uri,format)`
+    - 又写又读；只负责读，写由其他外部系统完成
+    - 路径：绝对路径，*，？通配符，{M..N}数字区间
+  - Mysql
+    - 与数据表定理映射
+    - `ENGINE = MySQL('host:port', 'database', 'table', 'user', 'password'[, replace_query, 'on_duplicate_clause'])`
+  - JDBC
+    - 依赖名为clickhouse-jdbc-bridge的查询代理服务
+    - 启动代理服务
+    - config。xml全局配置访问地址
+    - `ENGINE = JDBC('jdbc:url', 'database', 'table')`
+  - Kafka
+    ```
+    ENGINE = Kafka() 
+    SETTINGS 
+    kafka_broker_list = 'host:port,... ', 
+    kafka_topic_list = 'topic1,topic2,...', 
+    kafka_group_name = 'group_name', 
+    kafka_format = 'data_format'[,] 
+    [kafka_row_delimiter = 'delimiter_symbol'] 
+    [kafka_schema = ''] 
+    [kafka_num_consumers = N] 
+    [kafka_skip_broken_messages = N] 
+    [kafka_commit_every_batch = N]
+    ```
+    - clickhouse不支持恰好一次，支持最多一次，最少一次
+  -File
+    - config.xml配置中由path指定的路径
+    - 直接读取本地文件的数据 `ENGINE = File(format)`
+    - 目录：以表的名称命名 `<ch-path>/data/default/test_file_table/data.CSV`
+    - 文件固定以data.format命名，在<ch-path>/data/default路径下便会创建一个名为file_table的目录
+- 内存类型
+  - Memory
+    - 数据保存在内存中，数据不会被压缩也不会被格式转换。服务重启时，数据会丢失
+    - 性能和MergeTree相当
+    - 广泛应用与CLICKHOUSE内部，集群键数据分发数据的载体来用
+  - Set
+    - 
+
