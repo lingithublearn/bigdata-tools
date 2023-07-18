@@ -654,5 +654,207 @@ ORDER BY id
     - 性能和MergeTree相当
     - 广泛应用与CLICKHOUSE内部，集群键数据分发数据的载体来用
   - Set
-    - 
+    - 有物理内存， 先写至内存，后同步到磁盘
+    - 元素唯一，有去重的能力
+    - 不支持select,只能间接作为in查询的右侧条件被查询使用
+    - `SELECT arrayJoin([1, 2, 3]) AS a WHERE a IN set_1`
+    - 存储结构
+      - [num].bin：所有列字段的数据
+      - tmp临时目录
+  - join
+    - 存储结构类似set表引擎
+    - 能作为join查询的连接表，也能被直接查询使用
+    - `ENGINE = Join(join_strictness, join_type, key1[, key2, ...])`
+    - join_strictness：连接精度: all,any,asof
+    - join_type: 连接类型：支持INNER、OUTER和CROSS
+    - join_key：连接键，它决定了使用哪个列字段进行关联
+    - join_strictness为ANY，所以join_key重复的数据会被忽略
+    - `SELECT id,name,price FROM join_tb1 LEFT JOIN id_join_tb1 USING(id)`
+  - Buffer
+    - 不支持文件持久化存储，用内存
+    - 作为缓冲区，解决高并发问题
+    - `ENGINE = Buffer(database, table, num_layers, min_time, max_time, min_rows, max_rows, min_bytes, max_bytes)`
+    - num_layers：可以理解成线程数;min_time和max_time：时间条件的最小和最大值;min_rows和max_rows：数据行条件的最小和最大值;min_bytes和max_bytes：数据体量条件的最小和最大值;
+    - Buffer表刷新的判断依据有三个，满足其中任意一个，Buffer表就会刷新数据
+    - 上述三组条件在每一个num_layers中都是单独计算的
+- 日志类型
+  - 简介
+    - 数据量小，一次写入多次查询
+    - 不支持索引，分区，不支持并发读写
+  - TinyLog
+    - 性能最低
+    - 存储结构：数据文件：按列独立存储+元数据
+  - StripeLog
+    - 存储结构：
+      - data.bin:所有列字段用同一个文件保存
+      - index.mrk：数据标记，允许使用多线程，并行读取数据块
+      - sizes.json：元数据文件
+  - Log
+    - 性能最高
+    - 存储结构
+      - 【column】.bin：数据文件，按列独立存储
+      - _marks.mrk:数据标记，统一存储
+      - sizes.json
+    - 支持并行查询，按列按需读取，使用了更多的文件描述符
+- 接口类型
+  - Merge
+    - 不存储数据，不支持数据写入，合并多个查询的结果集
+    - `ENGINE = Merge(database, table_name)` name支持正则
+    - 用到了虚拟字段_table
+  - Dictionary
+    - 数据字典的一层封装
+    - `ENGINE = Dictionary(dict_name)`
+    - 可以创建dictionary引擎的数据库，会自动创建字典
+  - Distributed
+    - 分布式表的透明代理
+- 其他类型
+  - Live View
+    - 类似事件监听器，将一条SQL的查询结果作为监控目标，当目标数据增加时，做出响应
+    - `CREATE LIVE VIEW lv_origin AS SELECT COUNT(*) FROM origin_table1`
+    - `watch lv_origin`
+  - null
+    - 返回正确，但忽略数据不会保存
+    - `ENGINE = Null`
+    - 在使用物化视图的时候，如果不希望保留源表的数据，那么将源表设置成Null引擎将会是极好的选择
+  - URL
+    - 当执行SELECT查询的时候，底层会将其转换为GET请求的远程调用。而执行INSERT查询的时候，会将其转换为POST请求的远程调用
+    - `ENGINE = URL('url', format)`
+
+## 第九章 数据查询
+```
+[WITH expr |(subquery)] 
+SELECT [DISTINCT] expr 
+[FROM [db.]table | (subquery) | table_function] [FINAL] 
+[SAMPLE expr] 
+[[LEFT] ARRAY JOIN] 
+[GLOBAL] [ALL|ANY|ASOF] [INNER | CROSS | [LEFT|RIGHT|FULL [OUTER]] ] JOIN (subquery)|table ON|USING columns_list 
+[PREWHERE expr] 
+[WHERE expr] 
+[GROUP BY expr] 
+[WITH ROLLUP|CUBE|TOTALS] 
+[HAVING expr] 
+[ORDER BY expr] 
+[LIMIT [n[,m]] 
+[UNION ALL] 
+[INTO OUTFILE filename] 
+[FORMAT format] 
+[LIMIT [offset] n BY columns]
+```
+- with
+  - 支持CTE公共表达式，通过with子句
+  - 用法
+    - 定义变量： `WITH 10 AS start SELECT number FROM system.numbers WHERE number > start LIMIT 5`
+    - 调用函数： `WITH SUM(data_uncompressed_bytes) AS bytes SELECT database , formatReadableSize(bytes) AS format FROM system.columns GROUP BY database ORDER BY bytes DESC`
+    - 定义子查询： `WITH (SELECT SUM(data_uncompressed_bytes) FROM system.columns ) AS total_bytes`
+      - 结果集只能返回一行数据
+    - 子查询中重复使用：嵌套使用with
+- from子句
+  - 从数据表中取数
+  - 从子查询中取数
+  - 从表函数中取数 `SELECT number FROM numbers(5)`
+  - 可省略，从虚拟表中取数
+  - 可以使用final,强制查询合并，降低查询性能
+- sample
+  - 数据采样，幂等：数据不变化，同样规则返回同样数据
+  - 只用于mergertree，建表时定义 `ORDER BY (CounterID, intHash32(UserID)) SAMPLE BY intHash32(UserID)`
+  - SAMPLE BY所声明的表达式必须同时包含在主键的声明内,Sample Key必须是Int类型
+  - 用法
+    - SAMPLE factor `SELECT CounterID FROM hits_v1 SAMPLE 0.1`,统计查询时，为了近似，需要乘上系数；_sample_factor来获取采样系数
+    - SAMPLE rows `SELECT count() FROM hits_v1 SAMPLE 10000` ,_sample_factor来获取当前查询所对应的采样系数
+    - SAMPLE factor OFFSET n 示按因子系数和偏移量采样 `SELECT CounterID FROM hits_v1 SAMPLE 0.4 OFFSET 0.5`
+- array join
+  - 允许在数据表的内部，与数组或嵌套类型的字段进行JOIN操作
+  - 在一条SELECT语句中，只能存在一个ARRAY JOIN（使用子查询除外）。目前支持INNER和LEFT两种
+  - inner
+    - `SELECT title,value FROM query_v1 ARRAY JOIN value`
+    - 最终的数据基于value数组被展开成了多行，并且排除掉了空数组
+  - LEFT ARRAY JOIN
+    - `SELECT title,value,v FROM query_v1 LEFT ARRAY JOIN value AS v`
+    - 在INNER JOIN中被排除掉的空数组出现在了返回的结果集
+    - 同时对多个数组字段进行ARRAY JOIN操作时，查询的计算逻辑是按行合并而不是产生笛卡儿积
+  - 对嵌套类型数据的访问，ARRAY JOIN既可以直接使用字段列名;也可以使用点访问符的形式
+- join语句
+  - 连接精度
+    - 默认是all,只支持等式，交叉连接不需要使用join key，会产生笛卡尔积
+    - all：结果集返回右表中所有与左表id相匹配的数据
+    - any：结果集返回了右表中左表id相连接第一行的数据
+    - ASOF：模糊连接，允许在连接键后追加一个模糊连接的匹配条件asof_column；using的最后一个字段会被自动转换成asof_column模糊连接条件
+  - 连接类型
+    - inner join:返回交集
+    - outer join: 
+      - left 左全+交
+      - right
+      - full: 全 + 交
+    - cross: 交叉连接，笛卡尔积
+  - 多表连接
+    - 两两连接，前面的结果集合和后面的join
+    - 支持关联查询的语法：cross join:如果查询语句中共不包含where条件
+    - 如果包含，就转为inner join
+  - 注意事项
+    - 性能
+      - 左大右小的原则
+      - join查询目前没有缓存支持：如果使用大量的join，考虑用join表引擎
+      - 大量纬度属性补全的查询场景中，建议使用字典代替join
+    - 空值策略与简写形式
+      - 连接查询的空值策略，默认位0，由数据类型的默认值填充，为1，由null填充
+      - using简写
+- where和prewhere
+  - 过滤条件恰好是主键字段，则能够进一步借助索引加速查询
+  - prewhere,目前只能由于MergeTree系列的表引擎：指挥读取prewhere指定的列字段数据，用于数据过滤的条件判断，然后再读取select的列字段补全属性
+  - 自动优化，会自动使用prewhere
+  - 一些情况不会优化，使用常量表达式，使用默认值为alias类型的字段，包含arrayJoin、globalIn、globalNotIn或者indexHint的查询；查询的列字段与WHERE谓词相同；·使用了主键字段
+- group by
+  - select只能使用key申明字段，或者聚合函数
+  - 存在null值是，会将null=null特定值处理
+  - with rollup
+    - 按照聚合键从右向左上卷数据
+    - `SELECT table, name, SUM(bytes_on_disk) FROM system.parts GROUP BY table,name WITH ROLLUP ORDER BY table`
+  - with cube
+    - 基于聚合键之间所有的组合生成小计信息
+    - `SELECT database, table, name, SUM(bytes_on_disk) FROM (SELECT database, table, name, bytes_on_disk FROM system.parts WHERE table ='hits_v1') GROUP BY database,table,name WITH CUBE ORDER BY database,table ,name`
+  - with totals
+    - 基于聚合函数对所有数据进行总计
+    - `SELECT database, SUM(bytes_on_disk),COUNT(table) FROM system.parts GROUP BY database WITH TOTALS`
+- having
+  - 再聚合之后增加了filter过滤动作
+  - 嵌套where：使用了谓词下推，聚合之前就进行了数据过滤，减少了后续需要处理的数据量
+- order by 
+  - 指定全局排序，建表中的是分区内的局部排序
+  - nulls last: 其他值（value）→NaN→NULL
+  - nulls first: NULL→NaN→其他值（value）
+- limit by 
+  - 运行于order by之后，limit之前。按照指定分组，最多放回前n行数据.常用于TOP N的查询场景
+  - `SELECT database,table,MAX(bytes_on_disk) AS bytes FROM system.parts GROUP BY database,table ORDER BY database ,bytes DESC LIMIT 3 BY database`
+  - LIMIT BY也支持跳过OFFSET偏移量获取数据
+  - `LIMIT n OFFSET y BY express`/`LIMIT y,n BY express`
+  - `SELECT database,table,MAX(bytes_on_disk) AS bytes FROM system.parts GROUP BY database,table ORDER BY bytes DESC LIMIT 3 OFFSET 1 BY database`
+- limit
+  - 返回指定前n行数据
+  - `LIMIT n LIMIT n OFFSET m LIMIT m，n`
+  - 没有使用order by指定全局顺序时候，limit查询返回的数据可能不同
+- select
+  - 列字段可以使用正则 `SELECT COLUMNS('^n'), COLUMNS('p') FROM system.databases`
+- distinct
+  - 去重
+  - distinct执行计划更简单，可以和group by同时使用
+  - 先distinct,由group by
+  - 先distinct 后order by
+  - 也遵循null  = null
+- union all
+  - 联合多组查询，不能使用其他子句
+  - 列字段的数量相同，数据类型相同或兼容
+  - 列字段名称可以不同，以左边的为准
+  - union distinct只能由嵌套查询来变相实现
+- 查看执行计划
+  - 没有explain,好像有了
+  - `clickhouse-client -h ch7.nauu.com --send_logs_level=trace <<< 'SELECT * FROM hits_v1' > /dev/null`
+  - expression: 线程
+  - key condition: 主键索引 `Key condition: (column 0 in [67141, 67141])`
+  - minmax index condition: 分区索引 `MinMax index condition: (column 0 in [16146, 16146])`
+  - `Selected 12 parts by date, 12 parts by key, 1098 marks to read from 12 ranges`该查询语句共扫描了12个分区目录，共计1098个MarkRange
+  - `Read 8873910 rows, 8.50 GiB in 28.267 sec., 313928 rows/sec., 308.01 MiB/sec.`该查询语句总共读取了8 873 910行数据（全表），共8.50 GB
+  - `MemoryTracker: Peak memory usage (for query): 340.03 MiB.`该查询语句消耗内存最大时为340 MB
+  - 通过将ClickHouse服务日志设置到DEBUG或者TRACE级别，可以变相实现EXPLAIN查询
+
+# 第十章 副本与分片
 
