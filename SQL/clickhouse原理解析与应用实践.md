@@ -857,4 +857,86 @@ SELECT [DISTINCT] expr
   - 通过将ClickHouse服务日志设置到DEBUG或者TRACE级别，可以变相实现EXPLAIN查询
 
 # 第十章 副本与分片
+- 概述
+  - 既可以将所有节点组成一个单一集群，也可以把节点划分为多个小的集群
+  - 区分方法
+    - 数据层面：数据不同：分片；数据相同：副本
+    - 功能层面：副本：防止数据丢失；分片：实现数据的水平切分
+- 数据副本
+  - ReplicatedMergerTree 才有副本的能力
+  ![](../jpg/img_10.png)
+  - 过程
+    - 数据先写入内存缓冲区
+    - 数据先写入tmp临时目录分区，后面重命名为正式分区
+    - zookeeper 创建一系列监听节点
+  - 特定
+    - 依赖zookeeper
+    - 表级别的副本
+    - 多主架构
+    - block数据块
+    - 原子性
+    - 唯一性
+  - zookeeper的配置
+  - 副本的定义形式
+    - `ENGINE = ReplicatedMergeTree('zk_path', 'replica_name')`
+    - zk_path用于zookeeper创建的数据表的路径
+- 原理解析
+  - 数据结构
+    - zookeeper的节点结构：监听节点
+      - 元数据
+      - 判断标识：主副本的选举工作；记录Block数据块的Hash之阿娇，判断数据块是否重复
+      - 操作日志
+        - log:常规操作日志节点
+        - mutations : mutation操作日志节点
+        - /replicas/{replica_name}/* ：副本各自节点下的监听节点
+        - queue: 任务队列
+        - log_pointer: log日志指针节点
+        - mutation_pointer
+      - entry日志对象的数据结构：监听父节点的字节点添加
+        - logentry
+        - mutationentry
+  - 副本协同的核心流程
+    - insert
+    - merge
+    - mutation
+    - alter
+- 数据分片
+  - 集群的配置方式
+    - shard代表分片，replica代表副本
+    - replica数量的上线是clickhouse节点的数量决定的
+  - 基于集群实现分布式DDL
+    - `on cluster cluster_name`
+    - 数据结构
+      - zookeeper
+      - DDLlogEngtry日志对象的数据结构
+    - 分布式DDL的核心执行流程
+- Distributeed 原理解析
+  - 不存储数据，自动路由数据至集群中的各个节点
+  - 读时检查，只有再查询时才报错
+  - 定义形式 `ENGINE = Distributed(cluster, database, table [,sharding_key])`
+  - sharding_key:分片键 ,表会依据分片键的规则，将数据分布到各个host节点的本地表
+  - 查询分类
+    - 会作用与本地表的查询：insert，select
+    - 至影响分布式表自身：create,drop,rename,alter
+    - 不支持，mutation
+  - 分片规则
+    - 返回Int 或Uint。通常按照业务规则设置
+    - 分片权重weight：数据的倾斜程度
+    - slot:等于所有分片的权重之和
+    - 选择函数：`slot = shard_value % sum_weight`
+  - 写入的核心流程
+    - 1 依赖外部系统
+    - 2 Distributed表引擎代理写入分片数据
+  - 分布式查询的核心流程
+    - 多副本路由规则：用负载均衡算法从众多replica中选一个
+      - random,nearest_hostname; in_order
+    - 多分片查询：拆分成若干针对本地表的子查询
+      - 查询各个分片数据
+      - 合并返回结果
+      - 使用global优化分布式子查询
+        - in查询中，本地表会出错
+        - 使用分布式：查询请求会被放大N的平方被
+        - 使用Global优化
+          - 将子查询的结果先查出来，保存为临时的内存表，然后分发
 
+# 第十一章 管理与运维
