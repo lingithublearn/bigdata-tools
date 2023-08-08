@@ -26,6 +26,7 @@ SETTINGS index_granularity = 8192
     - 理解：去重不定时，不完全，不可靠
   - final 关键词 `select * from tbName fianl where datatime = ''`
     - 配合Replacing 表结构使用，会针对主键（组合索引）进行去重
+    - 索引文件是分节点的，实际入库的时候入本地表，存在多节点存在同个分区，final无法跨节点去重
     - 理解：分区键没同时写order by里，不算主键，没构建主键索引，会被去重，会去多了
   - group by+ argMax(a,b)
     - 需要增加一个字段，或者有字段能区分新旧数据，类似版本号的结果
