@@ -1,0 +1,38 @@
+# MYSQL
+- 在mysql中，group by 可以使用select 子句中定义的别名，因为mysql做了查询加强
+- 比较好理解的思考方式是根据需要的结果，一步一步反推自己需要什么的格式的数据
+- 函数
+  - 时间函数
+    - timestampdiff(second,start_time,end_time)
+    - date_sub(time,interval 10 day)
+    - datediff(time1 ,time2)
+    - dateformat(time,'%Y-%m-%s)
+    - date(timestamp) 获取天 2023-05-05
+    - datesub(time,interval 1) 
+  - 格式
+    - round(num,2)
+  - 字符串
+    - concat(a,b)
+  - 条件控制函数
+    - if(a>b,1,0)
+    - case when a >b then k when a > c then k+1 else k+2 end
+    - between 都是闭区间
+  - 统计函数
+    - sum()
+    - count()
+    - avg()
+  - 窗口函数
+    - over ( partition by xx order by xx rows xx[unbounded] preceding between xx[unbounded] following [current row])
+      - sum的时候会根据当前值顺序sum
+    - row_number() 每一列都有一个标号,相同值标号不一样
+    - rank() 相同值标号一样，会间隔
+    - dense_rank() 相同值标号一样，不会间隔
+- 场景
+  - 在线UV计算
+    - 编码（+-1），联立（union all）
+  - 新用户第二天留存率
+    - 新用户表
+    - 用户活跃表相关联
+  - 连续问题
+    - 连续问题核心就是利用排序编号与签到日期的差值是相等的。因为如果是连续的话，编号也是自增1，日期也是自增1
+    - 连续n天后重置，以日期-差值后，分组再dense_rank()一次
