@@ -106,7 +106,8 @@ SETTINGS index_granularity = 8192
   可执行的UDF，最低要v21.11
   
  - 用户自定义外部函数
-    -  在config.xml中增加`<user_defined_executable_functions_config>*_function.xml</user_defined_executable_functions_config>`
+    - 在config.xml中增加`<user_defined_executable_functions_config>*_function.xml</user_defined_executable_functions_config>`
+      - 一般在 /data/clickhouse中
     - 在对应的xml中自定义声明文件
     - 声名方法
     - 编写python 脚本
@@ -116,6 +117,29 @@ SETTINGS index_granularity = 8192
       - 注意tab和空格的区别，不能混用
     - 方法测试 `system reload functions   select * from system.functions where name = ''`
     - 查看报错`set send_logs_level='error';` 可以是trace
+ - 环境
+   - python3
+   - config.xml在etc/clickhouse-server
+ - bug
+   - clickhouse udf wrong result, expected 1 row(s), actual 0
+   - 变成unknow function 
+   - 使用 executable 执行，报错 cannot write into pipe strerror；Broken pipe: where executing TabSeparatedRowOutputFormat cannot_write_to_file_descriptor
+   - 问题定位
+     - python3 执行脚本可以执行
+     - select * from system.functions where origin = '2' ,可以查到方法
+     - github上一个建议是改成json格式，有点奇怪
+     - 另外的可能，clickhouse 没有监听 py脚本
+     - py脚本的标准输入没有连接到ck的标准输出
+     - 总部可以
+     - 查看clickhouse日志
+   - 新建一个函数测试下 - 结果依然报错
+   - 询问数据组的人 - 没得到答案
+   - 查看源码
+     - UserDefinedFunction::executeImpl，在这个类的方法中，前面调用了很多
+     - 本质上通过管道执行外部shell命令，并获取结果，写入result_column中，对结果进行检查，发现行数对应不上，所以报错
+     - 另一种可能是输入参数类型不对，导致实际入参为0
+     - 有可能是修改了ck的权限，让其没有权限访问python3 ,或者py脚本，或者*_function.xml文件-py脚本该用户下可以正常执行
+     - 
   
   
 # 7 位图

@@ -132,7 +132,7 @@
 
 # 第五章 数据操作
 - 向管理表中装载数据
-  - overwrite 数据会鲜先被删除
+  - overwrite 数据会优先被删除
   - inpath 路径下不能有任何文件夹
 ```
 load data local inpath `xxx`
@@ -452,11 +452,25 @@ hive 是反模式的
 
 
 # 第十五章 自定义hive文件和记录格式
-- 文件于记录格式
+- 文件和记录格式
+  - 默认是textfile
 - 阐明create table 句式
+  - stored as sequencefile 
+  - row format delimited
+  - serde
+  - inputformat
+  - outputformat
+  - describe table extended
 - 文件格式
+  - textFile,便于查看和编辑
+  - sequenceFile,可以在块和记录级别进行压缩，用于优化I/O和磁盘利用率
+  - rcfile:对有很多字段的表来说，用列式存储可以方便过滤
+    - hive 提供了特殊工具查看列式文件， `hive --service rcfilecat `
+  - 自定义格式
 - 记录格式：SerDE
+  - 序列化或反序列化
 - CSV 和 TSV
+  - 默认方式不能处理字段中包含逗号/回车的情况
 - ObjectInspector
 - Thing Big Hive Reflection ObjectInspector
 - XML UDF

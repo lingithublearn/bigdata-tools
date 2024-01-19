@@ -125,7 +125,7 @@ if car == 'bmw'
   - 运算符两边各添加一个空格
 
 # 第六章 字典
-- 基本的字典/对象： `alien_0 = {'color'；'green','point':5}`
+- 基本的字典/对象： `alien_0 = {'color':'green','point':5}`
 - 使用字典：
   - 访问字典中的值`alien_0['color']`
   - 添加键值对`alien_0['x_position']=0`

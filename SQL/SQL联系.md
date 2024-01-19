@@ -6,33 +6,51 @@
     - timestampdiff(second,start_time,end_time)
     - date_sub(time,interval 10 day)
     - datediff(time1 ,time2)
-    - dateformat(time,'%Y-%m-%s)
+    - date_format(time,'%Y-%m-%s)
     - date(timestamp) 获取天 2023-05-05
     - datesub(time,interval 1) 
+    - WEEKDAY 表示星期一，1表示星期二，以此类推，6表示星期日
+    - DAYOFWEEK 1表示星期日，2表示星期一，以此类推，7表示星期六
   - 格式
     - round(num,2)
   - 字符串
     - concat(a,b)
+    - group_concat()
   - 条件控制函数
     - if(a>b,1,0)
     - case when a >b then k when a > c then k+1 else k+2 end
     - between 都是闭区间
   - 统计函数
-    - sum()
-    - count()
-    - avg()
+    - sum() 可以和窗口函数一起使用
+    - count() 可以和distinct ,case when 一起使用
+    - avg() 对空值排除计算
   - 窗口函数
     - over ( partition by xx order by xx rows xx[unbounded] preceding between xx[unbounded] following [current row])
       - sum的时候会根据当前值顺序sum
+      - 不适用场景：不能用count(distinct) 
+      - 滚动窗口，需要销售日期是连续的
     - row_number() 每一列都有一个标号,相同值标号不一样
     - rank() 相同值标号一样，会间隔
     - dense_rank() 相同值标号一样，不会间隔
+  - with rollup
+    - 用于在GROUP BY查询中生成额外汇总行的子句
+    - WITH ROLLUP会生成一个额外的行，其中product和region列都为NULL，total_revenue列包含了整个表的销售总额。这个行被称为"ROLLUP"行，它代表了所有其他行的总计
+    - mysql中统计列是在最后一行，排序用order by grouping(key) , key 
+  - union 
+    - 单独会去重
+    - union all会合并所有的，不去重
 - 场景
   - 在线UV计算
     - 编码（+-1），联立（union all）
+  - 日活DAU
+  - gmv 一段时间内通过平台销售的商品的总价值,无论这些商品是否已经交付或退货
   - 新用户第二天留存率
     - 新用户表
+      - 做查询条件可以 where (uid,date(event_time)) in (select uid,min(date(event_time)) from tb_order_overall group by uid)
     - 用户活跃表相关联
   - 连续问题
     - 连续问题核心就是利用排序编号与签到日期的差值是相等的。因为如果是连续的话，编号也是自增1，日期也是自增1
     - 连续n天后重置，以日期-差值后，分组再dense_rank()一次
+  - SKU 动销率 Stock Keeping Unit (库存量单位)
+    - 有销售的SKU数量：售出的SKU数量总和（商品期间销售数量）
+    - 在售的SKU数量 ：剩余（总库存 - 售出）库存SKU的数量总和（商品期末库存数量）

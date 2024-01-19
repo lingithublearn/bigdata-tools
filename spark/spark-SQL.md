@@ -128,7 +128,7 @@ SELECT name, salary, LAG(salary) OVER (PARTITION BY dept ORDER BY salary) AS lag
     spark.sql.shuffle.partitions：并行度
     spark.sql.autoBroadcastJoinThreshold：Join操作时，要被广播的表的最大字节数
     spark.sql.tungsten.enabled：开启tungsten优化
-    spark.sql.planner.externalSort：根据需要执行Sort溢出到磁盘上，否则在每个分区内存中
+    spark.sql.planner.externalSort：根据需要执行Sort溢出到磁盘上，否则在每个分区内存中，默认开启的
     2、代码调优
     数据缓存、聚合算子
 
